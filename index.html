@@ -1378,6 +1378,7 @@
       let headingModeEnabled = false;
       let restoreMapDragging = true;
       let headingDrag = null;
+      let headingClearTimeout = null;
       let headingLine = null;
       let headingMarker = null;
       let headingScreenAngle = null;
@@ -1614,12 +1615,29 @@
         });
       }
 
+      function clearHeadingArrow() {
+        if (headingLine) headingLayer.removeLayer(headingLine);
+        if (headingMarker) headingLayer.removeLayer(headingMarker);
+        headingLine = null;
+        headingMarker = null;
+        headingScreenAngle = null;
+      }
+
+      function scheduleHeadingArrowClear() {
+        if (!headingLine || !headingMarker) return;
+        if (headingClearTimeout !== null) window.clearTimeout(headingClearTimeout);
+        headingClearTimeout = window.setTimeout(() => {
+          clearHeadingArrow();
+          headingClearTimeout = null;
+        }, 3000);
+      }
+
       function updateHeadingPreview(endPoint) {
-        if (!headingDrag) return;
+        if (!headingDrag) return false;
         const start = map.containerPointToLatLng(headingDrag.startPoint);
         const end = map.containerPointToLatLng(endPoint);
         const distanceMeters = map.distance(start, end);
-        if (distanceMeters < 1) return;
+        if (distanceMeters < 1) return false;
 
         const bearing = getTrueBearing(start, end);
         const points = Array.from({ length: 9 }, (_, index) =>
@@ -1664,6 +1682,7 @@
         headingScreenAngle = screenAngle;
         const displayedBearing = (Math.round(bearing) % 360).toString().padStart(3, "0");
         headingMarker.setTooltipContent(`TRUE HDG ${displayedBearing}°`);
+        return true;
       }
 
       headingModeToggle.addEventListener("click", () => {
@@ -1689,19 +1708,29 @@
         event.preventDefault();
         event.stopPropagation();
         const currentPoint = map.mouseEventToContainerPoint(event);
-        if (map.distance(
-          map.containerPointToLatLng(headingDrag.startPoint),
-          map.containerPointToLatLng(currentPoint)
-        ) < 8) return;
-        updateHeadingPreview(currentPoint);
+        if (headingDrag.startPoint.distanceTo(currentPoint) < 8) return;
+        if (headingClearTimeout !== null) {
+          window.clearTimeout(headingClearTimeout);
+          headingClearTimeout = null;
+        }
+        headingDrag.hasDrawn = updateHeadingPreview(currentPoint) || headingDrag.hasDrawn;
       });
 
       mapContainer.addEventListener("pointerup", event => {
         if (!headingDrag || headingDrag.pointerId !== event.pointerId) return;
         event.preventDefault();
         event.stopPropagation();
-        updateHeadingPreview(map.mouseEventToContainerPoint(event));
+        const drag = headingDrag;
+        const endPoint = map.mouseEventToContainerPoint(event);
+        if (drag.startPoint.distanceTo(endPoint) >= 8) {
+          if (headingClearTimeout !== null) {
+            window.clearTimeout(headingClearTimeout);
+            headingClearTimeout = null;
+          }
+          drag.hasDrawn = updateHeadingPreview(endPoint) || drag.hasDrawn;
+        }
         headingDrag = null;
+        if (drag.hasDrawn) scheduleHeadingArrowClear();
         if (mapContainer.hasPointerCapture(event.pointerId)) {
           mapContainer.releasePointerCapture(event.pointerId);
         }
@@ -1709,7 +1738,9 @@
 
       mapContainer.addEventListener("pointercancel", event => {
         if (!headingDrag || headingDrag.pointerId !== event.pointerId) return;
+        const drag = headingDrag;
         headingDrag = null;
+        if (drag.hasDrawn) scheduleHeadingArrowClear();
       });
 
       settingsDialog.querySelector("[data-settings-action='reset-view']").addEventListener("click", () => {
