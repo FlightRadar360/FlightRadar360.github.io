@@ -954,9 +954,10 @@
         showCallsignHover: true,
         speedUnit: "kts",
         altitudeUnit: "ft",
-        followSelectedFlight: false
+        followSelectedFlight: true
       });
       const settingsStorageKey = "flightradar360-settings";
+      const settingsStorageVersion = 2;
 
       function readSettings() {
         const savedSettings = { ...defaultSettings };
@@ -974,10 +975,16 @@
             "showAtcLabels",
             "showPilotCount",
             "showSearch",
-            "showCallsignHover",
-            "followSelectedFlight"
+            "showCallsignHover"
           ]) {
             if (typeof stored[key] === "boolean") savedSettings[key] = stored[key];
+          }
+          if (
+            Number.isInteger(stored.version) &&
+            stored.version >= settingsStorageVersion &&
+            typeof stored.followSelectedFlight === "boolean"
+          ) {
+            savedSettings.followSelectedFlight = stored.followSelectedFlight;
           }
           if (["satellite", "streets", "dark"].includes(stored.basemap)) {
             savedSettings.basemap = stored.basemap;
@@ -1098,6 +1105,7 @@
       let initialLoadResolved = false;
       let highlightedAircraftId = null;
       let selectedAircraftId = null;
+      let trackedAircraftId = null;
       let highlightTimeout = null;
       const aircraftIconSvg =
         '<svg class="aircraft-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" stroke="#111827" stroke-width=".8" d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>';
@@ -1122,7 +1130,10 @@
 
       function saveSettings() {
         try {
-          window.localStorage.setItem(settingsStorageKey, JSON.stringify(settings));
+          window.localStorage.setItem(
+            settingsStorageKey,
+            JSON.stringify({ ...settings, version: settingsStorageVersion })
+          );
           settingsSaveStatus.textContent = "Saved";
         } catch (error) {
           console.error("Unable to save FlightRadar360 settings", error);
@@ -1212,8 +1223,8 @@
             scheduleAtcLabels();
             break;
           case "followSelectedFlight":
-            if (value && selectedAircraftId !== null) {
-              const aircraft = aircraftData.get(selectedAircraftId);
+            if (value && trackedAircraftId !== null) {
+              const aircraft = aircraftData.get(trackedAircraftId);
               if (aircraft) {
                 map.panTo(
                   [aircraft.latitude, aircraft.longitude],
@@ -1400,6 +1411,7 @@
         }
         clearAircraftHighlight();
         highlightedAircraftId = id;
+        trackedAircraftId = id;
         renderAircraftMarkers();
         map.setView(
           [aircraft.latitude, aircraft.longitude],
@@ -1441,6 +1453,7 @@
       function selectAircraft(id) {
         if (!aircraftData.has(id)) return;
         selectedAircraftId = id;
+        trackedAircraftId = id;
         renderAircraftMarkers();
         if (settings.followSelectedFlight) {
           const aircraft = aircraftData.get(id);
@@ -1450,6 +1463,7 @@
 
       function closeSelectedFlight() {
         if (selectedAircraftId === null) return;
+        if (trackedAircraftId === selectedAircraftId) trackedAircraftId = null;
         selectedAircraftId = null;
         renderAircraftMarkers();
       }
@@ -1894,11 +1908,11 @@
         }
 
         renderAircraftMarkers();
-        if (settings.followSelectedFlight && selectedAircraftId !== null) {
-          const selectedAircraft = aircraftData.get(selectedAircraftId);
-          if (selectedAircraft) {
+        if (settings.followSelectedFlight && trackedAircraftId !== null) {
+          const trackedAircraft = aircraftData.get(trackedAircraftId);
+          if (trackedAircraft) {
             map.panTo(
-              [selectedAircraft.latitude, selectedAircraft.longitude],
+              [trackedAircraft.latitude, trackedAircraft.longitude],
               { animate: true, duration: .35 }
             );
           }
