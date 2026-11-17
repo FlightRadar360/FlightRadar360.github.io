@@ -153,10 +153,10 @@
         outline-offset: 2px;
       }
 
+      .street-map-toggle,
       .settings-toggle {
         position: absolute;
         z-index: 1000;
-        top: 50%;
         left: max(14px, env(safe-area-inset-left));
         display: grid;
         width: 40px;
@@ -176,11 +176,23 @@
           color .16s ease;
       }
 
+      .street-map-toggle {
+        top: calc(50% - 57px);
+      }
+
+      .settings-toggle {
+        top: 50%;
+      }
+
+      .street-map-toggle svg,
       .settings-toggle svg {
         width: 23px;
         height: 23px;
       }
 
+      .street-map-toggle:hover,
+      .street-map-toggle:focus-visible,
+      .street-map-toggle[aria-pressed="true"],
       .settings-toggle:hover,
       .settings-toggle:focus-visible,
       .settings-toggle[aria-expanded="true"] {
@@ -231,7 +243,7 @@
       .heading-mode-toggle {
         position: absolute;
         z-index: 1000;
-        top: calc(50% - 57px);
+        top: calc(50% - 114px);
         left: max(18px, env(safe-area-inset-left));
         display: grid;
         width: 40px;
@@ -998,6 +1010,7 @@
         .loading-spinner { animation-duration: 2s; }
         #map .leaflet-map-pane { transition-duration: 0s; }
         .flight-details { transition: none; }
+        .street-map-toggle { transition: none; }
         .settings-toggle { transition: none; }
         .reset-view-toggle { transition: none; }
         .heading-mode-toggle { transition: none; }
@@ -1007,7 +1020,7 @@
     </style>
   </head>
   <body>
-    <main id="map" class="is-loading" aria-label="Satellite map with live GeoFS multiplayer aircraft">
+    <main id="map" class="is-loading" aria-label="Interactive map with live GeoFS multiplayer aircraft">
       <div class="map-toolbar" aria-label="Map controls">
         <div class="pilot-count" role="status" aria-live="polite">
           <span class="pilot-count-label"><span class="live-indicator" aria-hidden="true"></span>LIVE</span>
@@ -1016,6 +1029,32 @@
         </div>
         <button class="atc-toggle" type="button" aria-pressed="false">ATC view</button>
       </div>
+      <button
+        class="heading-mode-toggle"
+        type="button"
+        aria-label="Heading mode"
+        aria-pressed="false"
+        title="Heading mode: drag on the map to draw a true heading"
+        data-heading-mode-toggle
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button
+        class="street-map-toggle"
+        type="button"
+        aria-label="Street Map"
+        aria-pressed="false"
+        title="Street Map"
+        data-street-map-toggle
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9 3v15M15 6v15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
       <button
         class="settings-toggle"
         type="button"
@@ -1033,19 +1072,6 @@
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M4.6 9a7.6 7.6 0 1 1-.2 5.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
           <path d="M4.7 4.8v4.7h4.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <button
-        class="heading-mode-toggle"
-        type="button"
-        aria-label="Heading mode"
-        aria-pressed="false"
-        title="Heading mode: drag on the map to draw a true heading"
-        data-heading-mode-toggle
-      >
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.7"/>
-          <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
         </svg>
       </button>
       <section class="metar-widget" aria-label="Airport METAR search">
@@ -1260,6 +1286,7 @@
       }
 
       const settings = readSettings();
+      const streetMapToggle = document.querySelector("[data-street-map-toggle]");
       const speedFormats = Object.freeze({
         kts: { factor: 1, unit: "kts" },
         kmh: { factor: 1.852, unit: "km/h" },
@@ -1310,14 +1337,20 @@
         )
       };
       let currentBasemap = null;
+      let basemapBeforeStreetMode = settings.basemap === "streets" ? "satellite" : settings.basemap;
 
       function setBasemap(name) {
         const nextLayer = basemapLayers[name];
         if (!nextLayer) throw new RangeError(`Unsupported basemap: ${name}`);
-        if (currentBasemap === name) return;
+        if (currentBasemap === name) {
+          streetMapToggle.setAttribute("aria-pressed", String(name === "streets"));
+          return;
+        }
         if (currentBasemap !== null) map.removeLayer(basemapLayers[currentBasemap]);
         nextLayer.addTo(map);
         currentBasemap = name;
+        if (name !== "streets") basemapBeforeStreetMode = name;
+        streetMapToggle.setAttribute("aria-pressed", String(name === "streets"));
       }
 
       setBasemap(settings.basemap);
@@ -1519,6 +1552,12 @@
       settingsButton.addEventListener("click", () => {
         if (!settingsDialog.open) settingsDialog.showModal();
         settingsButton.setAttribute("aria-expanded", "true");
+      });
+      streetMapToggle.addEventListener("click", () => {
+        settings.basemap = settings.basemap === "streets" ? basemapBeforeStreetMode : "streets";
+        setBasemap(settings.basemap);
+        syncSettingsControls();
+        saveSettings();
       });
       document.querySelector("[data-close-settings]").addEventListener("click", () => {
         settingsDialog.close();
