@@ -1095,6 +1095,7 @@
       const searchContainer = document.querySelector(".map-search-container");
       const mapLoading = document.querySelector("[data-map-loading]");
       const mapLoadingMessage = document.querySelector("[data-map-loading-message]");
+      let lastHandledSharedFlight = null;
       let initialLoadResolved = false;
       let highlightedAircraftId = null;
       let selectedAircraftId = null;
@@ -1106,6 +1107,19 @@
       L.DomEvent.disableScrollPropagation(searchContainer);
       L.DomEvent.disableClickPropagation(flightDetailsPanel);
       L.DomEvent.disableScrollPropagation(flightDetailsPanel);
+
+      function getSharedCallsign() {
+        const encodedCallsign = window.location.hash.slice(1);
+        if (!encodedCallsign) return null;
+        try {
+          return decodeURIComponent(encodedCallsign).trim() || null;
+        } catch {
+          return null;
+        }
+      }
+
+      const initialSharedCallsign = getSharedCallsign();
+      if (initialSharedCallsign) callsignSearch.value = initialSharedCallsign;
 
       function saveSettings() {
         try {
@@ -1365,7 +1379,7 @@
         renderAircraftMarkers();
       }
 
-      function focusAircraft(id) {
+      function focusAircraft(id, { updateUrl = true } = {}) {
         const aircraft = aircraftData.get(id);
         if (!aircraft) {
           renderCallsignResults();
@@ -1374,6 +1388,17 @@
 
         callsignSearch.value = aircraft.callsign;
         hideCallsignResults();
+        if (updateUrl && aircraft.callsign) {
+          const hash = `#${encodeURIComponent(aircraft.callsign)}`;
+          if (window.location.hash !== hash) {
+            window.history.replaceState(
+              window.history.state,
+              "",
+              `${window.location.pathname}${window.location.search}${hash}`
+            );
+          }
+          lastHandledSharedFlight = `${window.location.hash}:${aircraft.id}`;
+        }
         clearAircraftHighlight();
         highlightedAircraftId = id;
         renderAircraftMarkers();
@@ -1389,6 +1414,30 @@
           renderAircraftMarkers();
         }, 5000);
       }
+
+      function restoreAircraftFromHash() {
+        const callsign = getSharedCallsign();
+        if (!callsign) return;
+        callsignSearch.value = callsign;
+        const target = [...aircraftData.values()].find(
+          aircraft => aircraft.callsign?.toLocaleLowerCase() === callsign.toLocaleLowerCase()
+        );
+        if (!target) {
+          lastHandledSharedFlight = null;
+          renderCallsignResults();
+          return;
+        }
+
+        const sharedFlightKey = `${window.location.hash}:${target.id}`;
+        if (lastHandledSharedFlight === sharedFlightKey) return;
+        lastHandledSharedFlight = sharedFlightKey;
+        focusAircraft(target.id, { updateUrl: false });
+      }
+
+      window.addEventListener("hashchange", () => {
+        lastHandledSharedFlight = null;
+        restoreAircraftFromHash();
+      });
 
       function selectAircraft(id) {
         if (!aircraftData.has(id)) return;
@@ -1859,6 +1908,7 @@
             );
           }
         }
+        restoreAircraftFromHash();
         if (!callsignResults.hidden) renderCallsignResults();
         return aircraftData.size;
       }
