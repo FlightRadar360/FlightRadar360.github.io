@@ -1369,6 +1369,7 @@
       const mapLoadingMessage = document.querySelector("[data-map-loading-message]");
       let metarRequestController = null;
       let metarRequestId = 0;
+      let metarInputTimeout = null;
       let lastHandledSharedFlight = null;
       let initialLoadResolved = false;
       let highlightedAircraftId = null;
@@ -1617,7 +1618,10 @@
 
       function clearHeadingArrow() {
         if (headingLine) headingLayer.removeLayer(headingLine);
-        if (headingMarker) headingLayer.removeLayer(headingMarker);
+        if (headingMarker) {
+          headingMarker.closeTooltip();
+          headingLayer.removeLayer(headingMarker);
+        }
         headingLine = null;
         headingMarker = null;
         headingScreenAngle = null;
@@ -1730,7 +1734,7 @@
           drag.hasDrawn = updateHeadingPreview(endPoint) || drag.hasDrawn;
         }
         headingDrag = null;
-        if (drag.hasDrawn) scheduleHeadingArrowClear();
+        scheduleHeadingArrowClear();
         if (mapContainer.hasPointerCapture(event.pointerId)) {
           mapContainer.releasePointerCapture(event.pointerId);
         }
@@ -1738,9 +1742,8 @@
 
       mapContainer.addEventListener("pointercancel", event => {
         if (!headingDrag || headingDrag.pointerId !== event.pointerId) return;
-        const drag = headingDrag;
         headingDrag = null;
-        if (drag.hasDrawn) scheduleHeadingArrowClear();
+        scheduleHeadingArrowClear();
       });
 
       settingsDialog.querySelector("[data-settings-action='reset-view']").addEventListener("click", () => {
@@ -1805,6 +1808,10 @@
 
       metarForm.addEventListener("submit", async event => {
         event.preventDefault();
+        if (metarInputTimeout !== null) {
+          window.clearTimeout(metarInputTimeout);
+          metarInputTimeout = null;
+        }
         const airport = metarAirportInput.value.trim().toUpperCase();
         metarAirportInput.value = airport;
         if (!/^[A-Z0-9]{4}$/.test(airport)) {
@@ -1838,6 +1845,28 @@
             showMetarMessage("Unable to load METAR right now. Please try again.");
           }
         }
+      });
+
+      metarAirportInput.addEventListener("input", () => {
+        const airport = metarAirportInput.value.trim().toUpperCase();
+        metarAirportInput.value = airport;
+        if (metarInputTimeout !== null) {
+          window.clearTimeout(metarInputTimeout);
+          metarInputTimeout = null;
+        }
+        if (metarRequestController) {
+          metarRequestController.abort();
+          metarRequestController = null;
+        }
+        metarRequestId++;
+        if (!/^[A-Z0-9]{4}$/.test(airport)) {
+          metarResult.hidden = true;
+          return;
+        }
+        metarInputTimeout = window.setTimeout(() => {
+          metarInputTimeout = null;
+          metarForm.requestSubmit();
+        }, 350);
       });
 
       flightDetailsClose.addEventListener("click", closeSelectedFlight);
