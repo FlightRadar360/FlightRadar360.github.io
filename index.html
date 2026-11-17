@@ -1864,13 +1864,11 @@
 
       function updateAircraftMarkers(users) {
         const now = Date.now();
-        const activeIds = new Set();
 
         for (const rawUser of users) {
           const aircraft = readAircraft(rawUser, now);
           if (!aircraft) continue;
 
-          activeIds.add(aircraft.id);
           const previous = aircraftData.get(aircraft.id);
           const elapsedSeconds = previous ? (now - previous.lastSeenAt) / 1000 : 0;
           const groundSpeedKnots = getGroundSpeedKnots(previous, aircraft, elapsedSeconds);
@@ -1892,10 +1890,6 @@
           };
           updatedAircraft.flightStatus = deriveFlightStatus(updatedAircraft, previous);
           aircraftData.set(aircraft.id, updatedAircraft);
-        }
-
-        for (const id of aircraftData.keys()) {
-          if (!activeIds.has(id)) aircraftData.delete(id);
         }
 
         renderAircraftMarkers();
