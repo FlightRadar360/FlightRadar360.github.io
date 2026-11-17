@@ -954,10 +954,10 @@
         showCallsignHover: true,
         speedUnit: "kts",
         altitudeUnit: "ft",
-        followSelectedFlight: true
+        followSelectedFlight: false
       });
       const settingsStorageKey = "flightradar360-settings";
-      const settingsStorageVersion = 2;
+      const settingsStorageVersion = 3;
 
       function readSettings() {
         const savedSettings = { ...defaultSettings };
