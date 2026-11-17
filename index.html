@@ -228,6 +228,76 @@
         outline: none;
       }
 
+      .heading-mode-toggle {
+        position: absolute;
+        z-index: 1000;
+        top: calc(50% - 57px);
+        left: max(18px, env(safe-area-inset-left));
+        display: grid;
+        width: 40px;
+        height: 40px;
+        place-items: center;
+        transform: translateY(-50%);
+        border: 1px solid rgba(65, 217, 239, .35);
+        border-radius: 9px;
+        color: #43d9ed;
+        background: rgba(8, 20, 34, .94);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+        cursor: pointer;
+        transition:
+          transform .16s ease,
+          border-color .16s ease,
+          box-shadow .16s ease,
+          color .16s ease;
+      }
+
+      .heading-mode-toggle svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      .heading-mode-toggle:hover,
+      .heading-mode-toggle:focus-visible,
+      .heading-mode-toggle[aria-pressed="true"] {
+        transform: translateY(-50%) scale(1.05);
+        border-color: #42dbee;
+        color: #70f1ff;
+        box-shadow: 0 0 0 2px rgba(66, 219, 238, .16), 0 0 18px rgba(35, 205, 230, .32);
+        outline: none;
+      }
+
+      #map.heading-mode {
+        cursor: crosshair;
+        touch-action: none;
+      }
+
+      .heading-arrow-icon {
+        border: 0;
+        background: transparent;
+        pointer-events: none;
+      }
+
+      .heading-arrow-icon svg {
+        display: block;
+        width: 28px;
+        height: 28px;
+        overflow: visible;
+        filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .9));
+        transform-origin: center;
+      }
+
+      .heading-bearing-label {
+        padding: 3px 6px;
+        border: 1px solid rgba(65, 217, 239, .55);
+        border-radius: 5px;
+        color: #c7faff;
+        background: rgba(8, 20, 34, .94);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
+        font: 700 11px/1.2 Arial, sans-serif;
+        letter-spacing: .04em;
+        white-space: nowrap;
+      }
+
       .settings-dialog {
         width: min(520px, calc(100vw - 32px));
         max-width: none;
@@ -821,6 +891,7 @@
         .flight-details { transition: none; }
         .settings-toggle { transition: none; }
         .reset-view-toggle { transition: none; }
+        .heading-mode-toggle { transition: none; }
         .settings-dialog[open] { animation: none; }
       }
 
@@ -853,6 +924,19 @@
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M4.6 9a7.6 7.6 0 1 1-.2 5.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
           <path d="M4.7 4.8v4.7h4.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button
+        class="heading-mode-toggle"
+        type="button"
+        aria-label="Heading mode"
+        aria-pressed="false"
+        title="Heading mode: drag on the map to draw a true heading"
+        data-heading-mode-toggle
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
         </svg>
       </button>
       <dialog class="settings-dialog" aria-labelledby="settings-title" data-settings-dialog>
@@ -1108,6 +1192,7 @@
 
       const aircraftLayer = L.layerGroup();
       if (settings.showAircraft) aircraftLayer.addTo(map);
+      const headingLayer = L.layerGroup().addTo(map);
       const aircraftMarkers = new Map();
       const aircraftData = new Map();
       const aircraftTypeNames = new Map();
@@ -1128,6 +1213,7 @@
       const atcToggle = document.querySelector(".atc-toggle");
       const pilotCountContainer = document.querySelector(".pilot-count");
       const settingsButton = document.querySelector("[data-open-settings]");
+      const headingModeToggle = document.querySelector("[data-heading-mode-toggle]");
       const settingsDialog = document.querySelector("[data-settings-dialog]");
       const settingsSaveStatus = document.querySelector("[data-settings-save-status]");
       const settingsControls = [...settingsDialog.querySelectorAll("[data-setting]")];
@@ -1151,6 +1237,13 @@
       let selectedAircraftId = null;
       let trackedAircraftId = null;
       let highlightTimeout = null;
+      let headingModeEnabled = false;
+      let restoreMapDragging = true;
+      let headingDrag = null;
+      let headingLine = null;
+      let headingMarker = null;
+      let headingScreenAngle = null;
+      const mapContainer = map.getContainer();
       const aircraftIconSvg =
         '<svg class="aircraft-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" stroke="#111827" stroke-width=".8" d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>';
 
@@ -1319,6 +1412,166 @@
       }
 
       document.querySelector("[data-reset-map-view]").addEventListener("click", resetMapView);
+      function setHeadingMode(enabled) {
+        if (headingModeEnabled === enabled) return;
+        headingModeEnabled = enabled;
+        headingModeToggle.setAttribute("aria-pressed", String(enabled));
+        mapContainer.classList.toggle("heading-mode", enabled);
+        if (enabled) {
+          restoreMapDragging = map.dragging.enabled();
+          map.dragging.disable();
+          return;
+        }
+
+        if (headingDrag && mapContainer.hasPointerCapture(headingDrag.pointerId)) {
+          mapContainer.releasePointerCapture(headingDrag.pointerId);
+        }
+        headingDrag = null;
+        if (restoreMapDragging) map.dragging.enable();
+      }
+
+      function getTrueBearing(start, end) {
+        const toRadians = degrees => degrees * Math.PI / 180;
+        const latitude1 = toRadians(start.lat);
+        const latitude2 = toRadians(end.lat);
+        const longitudeDelta = toRadians(end.lng - start.lng);
+        const y = Math.sin(longitudeDelta) * Math.cos(latitude2);
+        const x =
+          Math.cos(latitude1) * Math.sin(latitude2) -
+          Math.sin(latitude1) * Math.cos(latitude2) * Math.cos(longitudeDelta);
+        return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+      }
+
+      function getHeadingPoint(start, bearingDegrees, distanceMeters) {
+        const toRadians = degrees => degrees * Math.PI / 180;
+        const toDegrees = radians => radians * 180 / Math.PI;
+        const earthRadiusMeters = 6_371_000;
+        const latitude1 = toRadians(start.lat);
+        const longitude1 = toRadians(start.lng);
+        const bearing = toRadians(bearingDegrees);
+        const angularDistance = distanceMeters / earthRadiusMeters;
+        const latitude2 = Math.asin(
+          Math.sin(latitude1) * Math.cos(angularDistance) +
+          Math.cos(latitude1) * Math.sin(angularDistance) * Math.cos(bearing)
+        );
+        const longitude2 = longitude1 + Math.atan2(
+          Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(latitude1),
+          Math.cos(angularDistance) - Math.sin(latitude1) * Math.sin(latitude2)
+        );
+        const longitudeDegrees = (toDegrees(longitude2) + 540) % 360 - 180;
+        return L.latLng(toDegrees(latitude2), longitudeDegrees);
+      }
+
+      function createHeadingArrowIcon(screenAngle) {
+        return L.divIcon({
+          className: "heading-arrow-icon",
+          html:
+            `<svg viewBox="0 0 24 24" fill="none" style="transform:rotate(${screenAngle}deg)" aria-hidden="true">` +
+            '<path d="M12 2.5 20 21l-8-4.8L4 21l8-18.5Z" fill="#43d9ed" stroke="#06202a" stroke-width="1.2" stroke-linejoin="round"/>' +
+            "</svg>",
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        });
+      }
+
+      function updateHeadingPreview(endPoint) {
+        if (!headingDrag) return;
+        const start = map.containerPointToLatLng(headingDrag.startPoint);
+        const end = map.containerPointToLatLng(endPoint);
+        const distanceMeters = map.distance(start, end);
+        if (distanceMeters < 1) return;
+
+        const bearing = getTrueBearing(start, end);
+        const points = Array.from({ length: 9 }, (_, index) =>
+          getHeadingPoint(start, bearing, distanceMeters * index / 8)
+        );
+        const projectedStart = map.latLngToContainerPoint(points[0]);
+        const projectedEnd = map.latLngToContainerPoint(points[points.length - 1]);
+        const screenAngle = Math.atan2(
+          projectedEnd.x - projectedStart.x,
+          projectedStart.y - projectedEnd.y
+        ) * 180 / Math.PI;
+
+        if (!headingLine) {
+          headingLine = L.polyline(points, {
+            color: "#43d9ed",
+            weight: 3,
+            opacity: .95,
+            dashArray: "7 5",
+            interactive: false
+          }).addTo(headingLayer);
+          headingMarker = L.marker(points[points.length - 1], {
+            icon: createHeadingArrowIcon(screenAngle),
+            interactive: false,
+            keyboard: false,
+            zIndexOffset: 1000
+          }).addTo(headingLayer);
+          headingMarker.bindTooltip("", {
+            permanent: true,
+            direction: "top",
+            offset: [0, -12],
+            className: "heading-bearing-label",
+            opacity: 1
+          });
+        } else {
+          headingLine.setLatLngs(points);
+          headingMarker.setLatLng(points[points.length - 1]);
+          if (headingScreenAngle !== screenAngle) {
+            headingMarker.setIcon(createHeadingArrowIcon(screenAngle));
+          }
+        }
+
+        headingScreenAngle = screenAngle;
+        const displayedBearing = (Math.round(bearing) % 360).toString().padStart(3, "0");
+        headingMarker.setTooltipContent(`TRUE HDG ${displayedBearing}°`);
+      }
+
+      headingModeToggle.addEventListener("click", () => {
+        setHeadingMode(!headingModeEnabled);
+      });
+
+      mapContainer.addEventListener("pointerdown", event => {
+        if (!headingModeEnabled || event.button !== 0) return;
+        if (
+          event.target instanceof Element &&
+          event.target.closest("button, input, select, textarea, dialog, .flight-details, .leaflet-control")
+        ) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        const startPoint = map.mouseEventToContainerPoint(event);
+        headingDrag = { pointerId: event.pointerId, startPoint };
+        mapContainer.setPointerCapture(event.pointerId);
+      });
+
+      mapContainer.addEventListener("pointermove", event => {
+        if (!headingDrag || headingDrag.pointerId !== event.pointerId) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const currentPoint = map.mouseEventToContainerPoint(event);
+        if (map.distance(
+          map.containerPointToLatLng(headingDrag.startPoint),
+          map.containerPointToLatLng(currentPoint)
+        ) < 8) return;
+        updateHeadingPreview(currentPoint);
+      });
+
+      mapContainer.addEventListener("pointerup", event => {
+        if (!headingDrag || headingDrag.pointerId !== event.pointerId) return;
+        event.preventDefault();
+        event.stopPropagation();
+        updateHeadingPreview(map.mouseEventToContainerPoint(event));
+        headingDrag = null;
+        if (mapContainer.hasPointerCapture(event.pointerId)) {
+          mapContainer.releasePointerCapture(event.pointerId);
+        }
+      });
+
+      mapContainer.addEventListener("pointercancel", event => {
+        if (!headingDrag || headingDrag.pointerId !== event.pointerId) return;
+        headingDrag = null;
+      });
+
       settingsDialog.querySelector("[data-settings-action='reset-view']").addEventListener("click", () => {
         resetMapView();
       });
