@@ -1158,9 +1158,11 @@
           }
         ),
         streets: L.tileLayer(
-          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
           {
-            attribution: "© OpenStreetMap contributors",
+            attribution:
+              "Sources: Esri, HERE, Garmin, USGS, Intermap, NRCan, Esri Japan, METI, Esri China, " +
+              "Esri Korea, INCREMENT P, (c) OpenStreetMap contributors, and the GIS User Community",
             maxZoom: 19,
             updateWhenZooming: false,
             keepBuffer: 2
