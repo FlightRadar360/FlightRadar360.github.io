@@ -191,6 +191,43 @@
         outline: none;
       }
 
+      .reset-view-toggle {
+        position: absolute;
+        z-index: 1000;
+        top: calc(50% + 57px);
+        left: max(18px, env(safe-area-inset-left));
+        display: grid;
+        width: 40px;
+        height: 40px;
+        place-items: center;
+        transform: translateY(-50%);
+        border: 1px solid rgba(65, 217, 239, .35);
+        border-radius: 9px;
+        color: #43d9ed;
+        background: rgba(8, 20, 34, .94);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+        cursor: pointer;
+        transition:
+          transform .16s ease,
+          border-color .16s ease,
+          box-shadow .16s ease,
+          color .16s ease;
+      }
+
+      .reset-view-toggle svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      .reset-view-toggle:hover,
+      .reset-view-toggle:focus-visible {
+        transform: translateY(-50%) scale(1.05);
+        border-color: #42dbee;
+        color: #70f1ff;
+        box-shadow: 0 0 0 2px rgba(66, 219, 238, .16), 0 0 18px rgba(35, 205, 230, .32);
+        outline: none;
+      }
+
       .settings-dialog {
         width: min(520px, calc(100vw - 32px));
         max-width: none;
@@ -783,6 +820,7 @@
         #map .leaflet-map-pane { transition-duration: 0s; }
         .flight-details { transition: none; }
         .settings-toggle { transition: none; }
+        .reset-view-toggle { transition: none; }
         .settings-dialog[open] { animation: none; }
       }
 
@@ -809,6 +847,12 @@
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z" stroke="currentColor" stroke-width="1.7"/>
           <path d="m19.4 13.5 1.15.9-1.15 2-1.38-.5a7.8 7.8 0 0 1-1.4.82l-.23 1.46h-2.3l-.24-1.46a7.8 7.8 0 0 1-1.4-.82l-1.37.5-1.16-2 1.15-.9a7 7 0 0 1 0-1.62l-1.15-.9 1.16-2 1.38.5a7.8 7.8 0 0 1 1.4-.82l.23-1.46h2.3l.24 1.46a7.8 7.8 0 0 1 1.4.82l1.37-.5 1.16 2-1.15.9a7 7 0 0 1-.01 1.62Z" transform="translate(-2 -2)" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="reset-view-toggle" type="button" aria-label="Reset map view" title="Reset map view" data-reset-map-view>
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4.6 9a7.6 7.6 0 1 1-.2 5.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M4.7 4.8v4.7h4.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
       <dialog class="settings-dialog" aria-labelledby="settings-title" data-settings-dialog>
@@ -1270,8 +1314,13 @@
         });
       });
       settingsControls.forEach(control => control.addEventListener("change", handleSettingChange));
-      settingsDialog.querySelector("[data-settings-action='reset-view']").addEventListener("click", () => {
+      function resetMapView() {
         map.setView([20, 0], 2, { animate: true });
+      }
+
+      document.querySelector("[data-reset-map-view]").addEventListener("click", resetMapView);
+      settingsDialog.querySelector("[data-settings-action='reset-view']").addEventListener("click", () => {
+        resetMapView();
       });
       settingsDialog.querySelector("[data-settings-action='center-selected']").addEventListener("click", () => {
         const aircraft = selectedAircraftId === null ? null : aircraftData.get(selectedAircraftId);
