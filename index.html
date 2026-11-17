@@ -1072,7 +1072,6 @@
       let atcLabelPlacements = null;
       const mapPollIntervalMs = 10_000;
       const maxAircraftAgeMs = 120_000;
-      const maxMarkerAgeMs = 30_000;
       const maxReportedSpeedKnots = 5000;
       const activePilotCount = document.querySelector("[data-active-pilots]");
       const atcToggle = document.querySelector(".atc-toggle");
@@ -1864,11 +1863,13 @@
 
       function updateAircraftMarkers(users) {
         const now = Date.now();
+        const snapshotAircraftIds = new Set();
 
         for (const rawUser of users) {
           const aircraft = readAircraft(rawUser, now);
           if (!aircraft) continue;
 
+          snapshotAircraftIds.add(aircraft.id);
           const previous = aircraftData.get(aircraft.id);
           const elapsedSeconds = previous ? (now - previous.lastSeenAt) / 1000 : 0;
           const groundSpeedKnots = getGroundSpeedKnots(previous, aircraft, elapsedSeconds);
@@ -1904,18 +1905,7 @@
         }
         restoreAircraftFromHash();
         if (!callsignResults.hidden) renderCallsignResults();
-        return aircraftData.size;
-      }
-
-      function removeExpiredAircraft() {
-        const expiredBefore = Date.now() - maxMarkerAgeMs;
-        for (const [id, aircraft] of aircraftData) {
-          if (aircraft.lastSeenAt >= expiredBefore) continue;
-          aircraftData.delete(id);
-        }
-        renderAircraftMarkers();
-        activePilotCount.textContent = aircraftData.size.toLocaleString();
-        if (!callsignResults.hidden) renderCallsignResults();
+        return snapshotAircraftIds.size;
       }
 
       async function loadAircraftTypeNames() {
@@ -1964,7 +1954,6 @@
             mapLoadingMessage.textContent = "Unable to load aircraft · retrying";
           }
         } finally {
-          removeExpiredAircraft();
           window.setTimeout(refreshAircraft, mapPollIntervalMs);
         }
       }
