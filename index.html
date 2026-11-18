@@ -76,6 +76,185 @@
         gap: 8px;
       }
 
+      .account-control {
+        position: relative;
+        flex: 0 0 auto;
+      }
+
+      .account-signin,
+      .account-trigger {
+        display: inline-flex;
+        min-height: 38px;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 12px;
+        border: 1px solid rgba(76, 214, 233, .34);
+        border-radius: 9px;
+        color: #d7fbff;
+        background: rgba(30, 147, 164, .12);
+        font: 700 .72rem Arial, sans-serif;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .account-trigger {
+        max-width: 190px;
+      }
+
+      .account-trigger span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .account-signin:hover,
+      .account-trigger:hover,
+      .account-signin:focus-visible,
+      .account-trigger:focus-visible {
+        border-color: #42dbee;
+        outline: none;
+        background: rgba(30, 147, 164, .24);
+      }
+
+      .account-avatar {
+        width: 25px;
+        height: 25px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #152638;
+      }
+
+      .account-menu {
+        position: absolute;
+        z-index: 1200;
+        top: calc(100% + 8px);
+        right: 0;
+        display: grid;
+        width: 176px;
+        gap: 4px;
+        padding: 6px;
+        border: 1px solid rgba(113, 226, 242, .24);
+        border-radius: 11px;
+        background: rgba(8, 17, 28, .98);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, .4);
+      }
+
+      .account-menu[hidden],
+      .account-control [hidden] {
+        display: none !important;
+      }
+
+      .account-menu button {
+        min-height: 36px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 7px;
+        color: #d9e7f2;
+        background: transparent;
+        font: 600 .72rem Arial, sans-serif;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .account-menu button:hover,
+      .account-menu button:focus-visible {
+        outline: none;
+        color: #e8fcff;
+        background: rgba(48, 191, 212, .16);
+      }
+
+      .map-account-control {
+        position: absolute;
+        z-index: 1001;
+        top: max(14px, env(safe-area-inset-top));
+        right: max(14px, env(safe-area-inset-right));
+      }
+
+      .account-status {
+        position: fixed;
+        z-index: 2200;
+        bottom: max(18px, env(safe-area-inset-bottom));
+        left: 50%;
+        width: max-content;
+        max-width: calc(100% - 32px);
+        padding: 10px 14px;
+        transform: translateX(-50%);
+        border: 1px solid rgba(113, 226, 242, .28);
+        border-radius: 9px;
+        color: #eefaff;
+        background: rgba(8, 17, 28, .96);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, .4);
+        font-size: .75rem;
+      }
+
+      .account-status[hidden] {
+        display: none;
+      }
+
+      .dashboard-main {
+        min-height: calc(100vh - 180px);
+        padding: clamp(55px, 8vw, 94px) 0 30px;
+      }
+
+      .dashboard-heading {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .dashboard-heading h1 {
+        margin: 0;
+        font-size: clamp(2.4rem, 5vw, 4rem);
+        letter-spacing: -.06em;
+      }
+
+      .dashboard-heading p {
+        margin: 10px 0 0;
+        color: #9eafbd;
+        font-size: .9rem;
+      }
+
+      .dashboard-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .dashboard-stat {
+        min-height: 118px;
+        padding: 20px;
+        border: 1px solid rgba(139, 173, 195, .15);
+        border-radius: 14px;
+        background: linear-gradient(145deg, rgba(20, 42, 57, .76), rgba(11, 18, 27, .92));
+      }
+
+      .dashboard-stat-label {
+        display: block;
+        color: #91a5ba;
+        font-size: .68rem;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+
+      .dashboard-stat strong {
+        display: block;
+        margin-top: 12px;
+        color: #e8fcff;
+        font-size: clamp(1.6rem, 4vw, 2.4rem);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .dashboard-footnote {
+        margin: 18px 0 0;
+        color: #8499ad;
+        font-size: .74rem;
+        line-height: 1.6;
+      }
+
       .site-nav a {
         display: inline-flex;
         min-height: 38px;
@@ -667,6 +846,10 @@
         .site-brand-logo { width: min(150px, 43vw); }
         .site-nav { gap: 1px; }
         .site-nav a { min-height: 34px; padding: 0 8px; font-size: .69rem; }
+        .account-signin,
+        .account-trigger { min-height: 34px; max-width: 116px; padding: 0 8px; font-size: .64rem; }
+        .account-avatar { width: 22px; height: 22px; }
+        .account-discord-label { display: none; }
         .site-main { width: calc(100% - 32px); }
         .site-hero {
           grid-template-columns: 1fr;
@@ -681,7 +864,9 @@
         .site-section { padding: 61px 0; }
         .site-card-grid,
         .docs-grid,
-        .site-split { grid-template-columns: 1fr; }
+        .site-split,
+        .dashboard-stat-grid { grid-template-columns: 1fr; }
+        .dashboard-heading { align-items: flex-start; flex-direction: column; }
         .site-card { min-height: auto; }
         .site-final-cta { align-items: flex-start; flex-direction: column; }
         .site-footer { align-items: flex-start; flex-direction: column; justify-content: center; padding: 18px 0; }
@@ -1757,6 +1942,19 @@
       <nav class="site-nav" aria-label="Main navigation">
         <a href="#docs" data-nav-page="docs">Docs</a>
         <a href="#about" data-nav-page="about">About us</a>
+        <div class="account-control" data-account-control>
+          <button class="account-signin" type="button" data-account-signin>
+            <span>Sign in</span><span class="account-discord-label">with Discord</span>
+          </button>
+          <button class="account-trigger" type="button" data-account-trigger aria-haspopup="true" aria-expanded="false" hidden>
+            <img class="account-avatar" data-account-avatar alt="" hidden />
+            <span data-account-name>Discord user</span>
+          </button>
+          <div class="account-menu" data-account-menu hidden>
+            <button type="button" data-account-dashboard>Dashboard</button>
+            <button type="button" data-account-signout>Sign out</button>
+          </div>
+        </div>
       </nav>
     </header>
 
@@ -1944,7 +2142,56 @@
       </main>
     </div>
 
+    <div id="dashboard" class="site-page" data-site-page="dashboard" hidden>
+      <main class="site-main dashboard-main">
+        <header class="dashboard-heading">
+          <div>
+            <p class="site-section-kicker">Your FlightRadar360 account</p>
+            <h1>Dashboard</h1>
+            <p data-dashboard-welcome>Loading your account…</p>
+          </div>
+          <a class="site-button site-button-secondary" href="#radar">Open Radar</a>
+        </header>
+        <section class="dashboard-stat-grid" aria-label="Your FlightRadar360 stats">
+          <article class="dashboard-stat">
+            <span class="dashboard-stat-label">Account created</span>
+            <strong data-stat-created>—</strong>
+          </article>
+          <article class="dashboard-stat">
+            <span class="dashboard-stat-label">Radar sessions</span>
+            <strong data-stat-radar-visits>0</strong>
+          </article>
+          <article class="dashboard-stat">
+            <span class="dashboard-stat-label">Connected Users map visits</span>
+            <strong data-stat-connected-visits>0</strong>
+          </article>
+          <article class="dashboard-stat">
+            <span class="dashboard-stat-label">Active map minutes</span>
+            <strong data-stat-map-minutes>0</strong>
+          </article>
+        </section>
+        <p class="dashboard-footnote">
+          Stats are based on activity recorded while signed in. Counts start at zero and begin
+          accumulating after this tracking is enabled; time is counted only while the radar tab is
+          visible.
+        </p>
+      </main>
+    </div>
+
     <main id="map" class="is-loading" aria-label="Interactive map with live GeoFS multiplayer aircraft" hidden>
+      <div class="account-control map-account-control" data-account-control>
+        <button class="account-signin" type="button" data-account-signin>
+          <span>Sign in</span><span class="account-discord-label">with Discord</span>
+        </button>
+        <button class="account-trigger" type="button" data-account-trigger aria-haspopup="true" aria-expanded="false" hidden>
+          <img class="account-avatar" data-account-avatar alt="" hidden />
+          <span data-account-name>Discord user</span>
+        </button>
+        <div class="account-menu" data-account-menu hidden>
+          <button type="button" data-account-dashboard>Dashboard</button>
+          <button type="button" data-account-signout>Sign out</button>
+        </div>
+      </div>
       <div class="map-toolbar" aria-label="Map controls">
         <div class="pilot-count" role="status" aria-live="polite">
           <span class="pilot-count-label"><span class="live-indicator" aria-hidden="true"></span>LIVE</span>
@@ -2162,6 +2409,7 @@
         <span data-map-loading-message>Updating Live Aircraft…</span>
       </div>
     </main>
+    <div class="account-status" role="status" aria-live="polite" data-account-status hidden></div>
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
       integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
@@ -2229,6 +2477,13 @@
 
       const settings = readSettings();
       const siteHeader = document.querySelector("[data-site-header]");
+      const accountControls = [...document.querySelectorAll("[data-account-control]")];
+      const accountStatus = document.querySelector("[data-account-status]");
+      const dashboardWelcome = document.querySelector("[data-dashboard-welcome]");
+      const dashboardCreated = document.querySelector("[data-stat-created]");
+      const dashboardRadarVisits = document.querySelector("[data-stat-radar-visits]");
+      const dashboardConnectedVisits = document.querySelector("[data-stat-connected-visits]");
+      const dashboardMapMinutes = document.querySelector("[data-stat-map-minutes]");
       const sitePages = new Map(
         [...document.querySelectorAll("[data-site-page]")].map(page => [page.dataset.sitePage, page])
       );
@@ -2245,6 +2500,12 @@
         mph: { factor: 1.150779, unit: "mph" }
       });
       let activeMapMode = "geofs";
+      let activeSitePage = null;
+      let radarVisitTracked = false;
+      let currentAuthUser = null;
+      let mapActivityTimer = null;
+      let accountStatusTimer = null;
+      let activityTrackingErrorShown = false;
       const mapModeViews = { geofs: null, connected: null };
       const map = L.map("map", {
         center: [20, 0],
@@ -2423,6 +2684,7 @@
           zoom: map.getZoom()
         };
         activeMapMode = mode;
+        if (mode === "connected") recordMemberActivity("connected_map_open");
         syncMapModeControls();
         const view = mapModeViews[mode];
         map.setView(view?.center ?? [20, 0], view?.zoom ?? 2, { animate: true });
@@ -2451,7 +2713,7 @@
         connectedMapClient = globalThis.supabase.createClient(
           config.supabaseUrl,
           config.supabaseAnonKey,
-          { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } }
+          { auth: { persistSession: true, autoRefreshToken: true } }
         );
         return connectedMapClient;
       }
@@ -2465,6 +2727,213 @@
         if (!anonymousSignIn.data.session) {
           throw new Error("Supabase did not return an anonymous map session.");
         }
+      }
+
+      function showAccountStatus(message) {
+        accountStatus.textContent = message;
+        accountStatus.hidden = false;
+        if (accountStatusTimer !== null) window.clearTimeout(accountStatusTimer);
+        accountStatusTimer = window.setTimeout(() => {
+          accountStatus.hidden = true;
+          accountStatusTimer = null;
+        }, 7000);
+      }
+
+      function getAccountDisplayName(user) {
+        const metadata = user.user_metadata ?? {};
+        return metadata.full_name || metadata.name || metadata.username || "Discord user";
+      }
+
+      function renderAccountControls() {
+        const user = currentAuthUser?.is_anonymous ? null : currentAuthUser;
+        const metadata = user?.user_metadata ?? {};
+        const avatarUrl = typeof metadata.avatar_url === "string" ? metadata.avatar_url : "";
+        for (const control of accountControls) {
+          const signInButton = control.querySelector("[data-account-signin]");
+          const trigger = control.querySelector("[data-account-trigger]");
+          const avatar = control.querySelector("[data-account-avatar]");
+          const name = control.querySelector("[data-account-name]");
+          const menu = control.querySelector("[data-account-menu]");
+          signInButton.hidden = Boolean(user);
+          trigger.hidden = !user;
+          name.textContent = user ? getAccountDisplayName(user) : "Discord user";
+          if (user && avatarUrl) {
+            avatar.src = avatarUrl;
+            avatar.hidden = false;
+            avatar.onerror = () => {
+              avatar.hidden = true;
+            };
+          } else {
+            avatar.removeAttribute("src");
+            avatar.hidden = true;
+            avatar.onerror = null;
+          }
+          if (!user) {
+            menu.hidden = true;
+            trigger.setAttribute("aria-expanded", "false");
+          }
+        }
+      }
+
+      async function signInWithDiscord() {
+        try {
+          const redirectUrl = new URL("/", window.location.origin);
+          redirectUrl.hash = window.location.hash;
+          const { error } = await getConnectedMapClient().auth.signInWithOAuth({
+            provider: "discord",
+            options: {
+              redirectTo: redirectUrl.toString(),
+              scopes: "identify"
+            }
+          });
+          if (error) throw error;
+        } catch (error) {
+          console.error("FlightRadar360 Discord sign-in failed.", error);
+          showAccountStatus(`Discord sign-in failed: ${error.message || "check the Supabase Discord provider setup."}`);
+        }
+      }
+
+      async function signOutAccount() {
+        try {
+          const { error } = await getConnectedMapClient().auth.signOut();
+          if (error) throw error;
+          for (const control of accountControls) {
+            control.querySelector("[data-account-menu]").hidden = true;
+            control.querySelector("[data-account-trigger]").setAttribute("aria-expanded", "false");
+          }
+          if (activeSitePage === "dashboard") window.location.hash = "home";
+          showAccountStatus("You have been signed out.");
+        } catch (error) {
+          console.error("FlightRadar360 could not sign out.", error);
+          showAccountStatus(`Sign out failed: ${error.message || "please try again."}`);
+        }
+      }
+
+      function recordMemberActivity(eventType) {
+        if (!currentAuthUser || currentAuthUser.is_anonymous) return;
+        void getConnectedMapClient()
+          .rpc("record_member_activity", { p_event_type: eventType })
+          .then(({ error }) => {
+            if (error) throw error;
+          })
+          .catch(error => {
+            console.error(`Unable to record FlightRadar360 activity (${eventType}).`, error);
+            if (!activityTrackingErrorShown) {
+              activityTrackingErrorShown = true;
+              showAccountStatus("Dashboard activity could not be recorded. Check that the latest Supabase setup SQL has been run.");
+            }
+          });
+      }
+
+      function trackCurrentRadarVisit() {
+        if (
+          activeSitePage === "radar" &&
+          !currentAuthUser?.is_anonymous &&
+          currentAuthUser &&
+          !radarVisitTracked
+        ) {
+          radarVisitTracked = true;
+          recordMemberActivity("radar_open");
+        }
+      }
+
+      async function loadMemberDashboard() {
+        if (!currentAuthUser || currentAuthUser.is_anonymous) {
+          dashboardWelcome.textContent = "Sign in with Discord to view your account stats.";
+          dashboardCreated.textContent = "—";
+          dashboardRadarVisits.textContent = "0";
+          dashboardConnectedVisits.textContent = "0";
+          dashboardMapMinutes.textContent = "0";
+          return;
+        }
+        const initialUserId = currentAuthUser.id;
+        try {
+          const client = getConnectedMapClient();
+          const { data, error } = await client.auth.getUser();
+          if (error) throw error;
+          const user = data.user;
+          if (!user || user.id !== initialUserId || currentAuthUser?.id !== initialUserId) return;
+
+          dashboardWelcome.textContent = `Welcome, ${getAccountDisplayName(user)}.`;
+          const createdAt = Date.parse(user.created_at);
+          dashboardCreated.textContent = Number.isFinite(createdAt)
+            ? new Date(createdAt).toLocaleDateString(undefined, {
+              year: "numeric",
+              month: "short",
+              day: "numeric"
+            })
+            : "Unknown";
+
+          const [radarVisits, connectedVisits, mapMinutes] = await Promise.all([
+            client.from("member_activity_events")
+              .select("id", { count: "exact", head: true })
+              .eq("event_type", "radar_open"),
+            client.from("member_activity_events")
+              .select("id", { count: "exact", head: true })
+              .eq("event_type", "connected_map_open"),
+            client.from("member_activity_events")
+              .select("id", { count: "exact", head: true })
+              .eq("event_type", "active_map_minute")
+          ]);
+          for (const result of [radarVisits, connectedVisits, mapMinutes]) {
+            if (result.error) throw result.error;
+          }
+          if (currentAuthUser?.id !== initialUserId) return;
+          dashboardRadarVisits.textContent = String(radarVisits.count ?? 0);
+          dashboardConnectedVisits.textContent = String(connectedVisits.count ?? 0);
+          dashboardMapMinutes.textContent = String(mapMinutes.count ?? 0);
+        } catch (error) {
+          console.error("Unable to load FlightRadar360 dashboard stats.", error);
+          dashboardWelcome.textContent = "Some account stats could not be loaded.";
+          showAccountStatus(`Dashboard stats unavailable: ${error.message || "check the database setup."}`);
+        }
+      }
+
+      for (const control of accountControls) {
+        control.querySelector("[data-account-signin]").addEventListener("click", () => {
+          void signInWithDiscord();
+        });
+        control.querySelector("[data-account-trigger]").addEventListener("click", event => {
+          const trigger = event.currentTarget;
+          const menu = control.querySelector("[data-account-menu]");
+          const open = menu.hidden;
+          menu.hidden = !open;
+          trigger.setAttribute("aria-expanded", String(open));
+        });
+        control.querySelector("[data-account-dashboard]").addEventListener("click", () => {
+          if (!currentAuthUser || currentAuthUser.is_anonymous) {
+            showAccountStatus("Sign in with Discord to open your dashboard.");
+            return;
+          }
+          for (const accountControl of accountControls) {
+            accountControl.querySelector("[data-account-menu]").hidden = true;
+            accountControl.querySelector("[data-account-trigger]").setAttribute("aria-expanded", "false");
+          }
+          window.location.hash = "dashboard";
+        });
+        control.querySelector("[data-account-signout]").addEventListener("click", () => {
+          void signOutAccount();
+        });
+      }
+
+      document.addEventListener("click", event => {
+        for (const control of accountControls) {
+          if (control.contains(event.target)) continue;
+          control.querySelector("[data-account-menu]").hidden = true;
+          control.querySelector("[data-account-trigger]").setAttribute("aria-expanded", "false");
+        }
+      });
+
+      try {
+        getConnectedMapClient().auth.onAuthStateChange((_event, session) => {
+          currentAuthUser = session?.user ?? null;
+          renderAccountControls();
+          trackCurrentRadarVisit();
+          if (activeSitePage === "dashboard") queueMicrotask(() => void loadMemberDashboard());
+        });
+      } catch (error) {
+        console.error("FlightRadar360 account sign-in is unavailable.", error);
+        showAccountStatus(`Account sign-in unavailable: ${error.message || "check the Supabase setup."}`);
       }
 
       function createConnectedPopup(aircraft) {
@@ -3792,17 +4261,27 @@
         const normalizedFragment = fragment.toLowerCase();
         const requestedPage = normalizedFragment === "docs"
           ? "docs"
+          : normalizedFragment === "dashboard"
+            ? "dashboard"
           : normalizedFragment === "radar" ||
             (normalizedFragment && !["home", "about"].includes(normalizedFragment))
             ? "radar"
             : "home";
 
+        if (requestedPage !== activeSitePage) {
+          radarVisitTracked = false;
+          activeSitePage = requestedPage;
+          trackCurrentRadarVisit();
+        }
+
         document.body.classList.toggle("radar-active", requestedPage === "radar");
         document.title = requestedPage === "docs"
           ? "Docs | FlightRadar360"
-          : requestedPage === "radar"
-            ? "Live Radar | FlightRadar360"
-            : "FlightRadar360 | GeoFS Live Radar";
+          : requestedPage === "dashboard"
+            ? "Dashboard | FlightRadar360"
+            : requestedPage === "radar"
+              ? "Live Radar | FlightRadar360"
+              : "FlightRadar360 | GeoFS Live Radar";
         siteHeader.hidden = requestedPage === "radar";
         for (const [pageName, page] of sitePages) {
           page.hidden = pageName !== requestedPage;
@@ -3824,6 +4303,8 @@
             syncMapModeControls();
             startRadarFeeds();
           });
+        } else if (requestedPage === "dashboard") {
+          void loadMemberDashboard();
         } else {
           if (aircraftRefreshTimeout !== null) {
             window.clearTimeout(aircraftRefreshTimeout);
@@ -3837,6 +4318,8 @@
             window.requestAnimationFrame(() => {
               document.querySelector("#docs").scrollIntoView({ block: "start" });
             });
+          } else if (normalizedFragment === "dashboard") {
+            window.scrollTo({ top: 0, behavior: "smooth" });
           } else if (!fragment || normalizedFragment === "home") {
             window.scrollTo({ top: 0, behavior: "smooth" });
           }
@@ -3845,6 +4328,14 @@
 
       window.addEventListener("hashchange", updateSiteRoute);
       updateSiteRoute();
+      mapActivityTimer = window.setInterval(() => {
+        if (
+          activeSitePage === "radar" &&
+          document.visibilityState === "visible" &&
+          currentAuthUser &&
+          !currentAuthUser.is_anonymous
+        ) recordMemberActivity("active_map_minute");
+      }, 60_000);
 
       if ("IntersectionObserver" in window) {
         const revealObserver = new IntersectionObserver(entries => {
