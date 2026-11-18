@@ -6,6 +6,8 @@
     <meta name="theme-color" content="#111827" />
     <meta name="description" content="Explore the GeoFS virtual skies with FlightRadar360, a community-built live radar and flight information hub." />
     <title>FlightRadar360</title>
+    <link rel="icon" type="image/png" href="./assets/flightradar360-favicon.png" />
+    <link rel="apple-touch-icon" href="./assets/flightradar360-favicon.png" />
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -58,55 +60,14 @@
       .site-brand {
         display: inline-flex;
         align-items: center;
-        gap: 10px;
-        color: #f3f8fc;
-        font-size: .9rem;
-        font-weight: 800;
-        letter-spacing: .015em;
+        flex: 0 1 auto;
         text-decoration: none;
-        white-space: nowrap;
       }
 
-      .site-brand-mark {
-        position: relative;
-        display: grid;
-        width: 38px;
-        height: 38px;
-        flex: 0 0 auto;
-        place-items: center;
-        overflow: hidden;
-        border: 1px solid rgba(68, 222, 239, .48);
-        border-radius: 12px;
-        color: #69e5f1;
-        background:
-          radial-gradient(circle at 50% 50%, rgba(52, 209, 229, .26), transparent 58%),
-          #0a1720;
-      }
-
-      .site-brand-mark::before,
-      .site-brand-mark::after {
-        position: absolute;
-        width: 26px;
-        height: 26px;
-        border: 1px solid rgba(91, 226, 238, .32);
-        border-radius: 50%;
-        content: "";
-      }
-
-      .site-brand-mark::after {
-        width: 16px;
-        height: 16px;
-      }
-
-      .site-brand-mark svg {
-        z-index: 1;
-        width: 18px;
-        height: 18px;
-        filter: drop-shadow(0 0 5px rgba(67, 217, 237, .65));
-      }
-
-      .site-brand-name span {
-        color: #54deec;
+      .site-brand-logo {
+        display: block;
+        width: min(230px, 25vw);
+        height: auto;
       }
 
       .site-nav {
@@ -703,8 +664,7 @@
           border-radius: 13px;
         }
 
-        .site-brand { gap: 7px; font-size: .74rem; }
-        .site-brand-mark { width: 33px; height: 33px; }
+        .site-brand-logo { width: min(150px, 43vw); }
         .site-nav { gap: 1px; }
         .site-nav a { min-height: 34px; padding: 0 8px; font-size: .69rem; }
         .site-main { width: calc(100% - 32px); }
@@ -1303,52 +1263,6 @@
         transform: translateX(-50%);
       }
 
-      .map-mode-switch {
-        position: absolute;
-        z-index: 1000;
-        top: max(14px, env(safe-area-inset-top));
-        left: 50%;
-        display: flex;
-        width: min(340px, calc(100% - 32px));
-        box-sizing: border-box;
-        gap: 4px;
-        padding: 4px;
-        transform: translateX(-50%);
-        border: 1px solid rgba(255, 255, 255, .18);
-        border-radius: 10px;
-        background: rgba(3, 10, 18, .94);
-        box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
-        backdrop-filter: blur(8px);
-      }
-
-      .map-mode-button {
-        flex: 1;
-        min-width: 0;
-        min-height: 32px;
-        padding: 0 10px;
-        border: 1px solid transparent;
-        border-radius: 7px;
-        color: #a9bdcc;
-        background: transparent;
-        font: 700 .7rem Arial, sans-serif;
-        white-space: nowrap;
-        cursor: pointer;
-        transition: color .16s ease, background .16s ease, border-color .16s ease;
-      }
-
-      .map-mode-button[aria-pressed="true"] {
-        border-color: rgba(65, 217, 239, .45);
-        color: #d7fbff;
-        background: rgba(24, 126, 145, .3);
-      }
-
-      .map-mode-button:hover,
-      .map-mode-button:focus-visible {
-        border-color: rgba(65, 217, 239, .65);
-        color: #fff;
-        outline: none;
-      }
-
       .connected-map-empty {
         position: absolute;
         z-index: 700;
@@ -1820,7 +1734,6 @@
         .loading-spinner { animation-duration: 2s; }
         #map .leaflet-map-pane { transition-duration: 0s; }
         .flight-details { transition: none; }
-        .map-mode-button { transition: none; }
         .street-map-toggle { transition: none; }
         .settings-toggle { transition: none; }
         .reset-view-toggle { transition: none; }
@@ -1833,12 +1746,13 @@
   <body>
     <header class="site-header" data-site-header>
       <a class="site-brand" href="#home" aria-label="FlightRadar360 home">
-        <span class="site-brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M12 2.7 14.2 9l6.3 2.1-6.3 2.2-2.2 7-2.2-7-6.3-2.2L9.8 9 12 2.7Z" fill="currentColor"/>
-          </svg>
-        </span>
-        <span class="site-brand-name">FLIGHT<span>RADAR360</span></span>
+        <img
+          class="site-brand-logo"
+          src="./assets/flightradar360-wordmark.png"
+          alt=""
+          width="1536"
+          height="370"
+        />
       </a>
       <nav class="site-nav" aria-label="Main navigation">
         <a href="#docs" data-nav-page="docs">Docs</a>
@@ -2039,10 +1953,6 @@
         </div>
         <button class="atc-toggle" type="button" aria-pressed="false">ATC view</button>
       </div>
-      <div class="map-mode-switch" role="group" aria-label="Map source">
-        <button class="map-mode-button" type="button" aria-pressed="true" data-map-mode="geofs">GeoFS Live</button>
-        <button class="map-mode-button" type="button" aria-pressed="false" data-map-mode="connected">Connected Users</button>
-      </div>
       <section class="connected-map-empty" aria-labelledby="connected-map-title" data-connected-map-empty hidden>
         <p class="connected-map-empty-kicker">Tampermonkey Map</p>
         <h2 id="connected-map-title">No connected users yet</h2>
@@ -2129,6 +2039,17 @@
           <button class="settings-tab" id="settings-tab-misc" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-misc" tabindex="-1" data-settings-tab="misc">Misc</button>
         </div>
         <section class="settings-panel" id="settings-panel-map" role="tabpanel" aria-labelledby="settings-tab-map" data-settings-panel="map">
+          <p class="settings-section-title">Map source</p>
+          <label class="settings-select-row">
+            <span class="settings-select-copy">
+              <strong>Aircraft map</strong>
+              <small>Choose which pilots to show on the radar.</small>
+            </span>
+            <select class="settings-select" data-map-mode-select aria-label="Aircraft map">
+              <option value="geofs">GeoFS multiplayer</option>
+              <option value="connected">Connected Users</option>
+            </select>
+          </label>
           <p class="settings-section-title">Map appearance</p>
           <label class="settings-select-row">
             <span class="settings-select-copy">
@@ -2314,7 +2235,7 @@
       const siteNavLinks = [...document.querySelectorAll("[data-nav-page]")];
       const mapElement = document.querySelector("#map");
       const streetMapToggle = document.querySelector("[data-street-map-toggle]");
-      const mapModeButtons = [...document.querySelectorAll("[data-map-mode]")];
+      const mapModeSelect = document.querySelector("[data-map-mode-select]");
       const connectedMapEmpty = document.querySelector("[data-connected-map-empty]");
       const connectedMapTitle = document.querySelector("#connected-map-title");
       const connectedMapMessage = document.querySelector("[data-connected-map-message]");
@@ -2468,9 +2389,7 @@
 
       function syncMapModeControls() {
         const isConnectedMode = activeMapMode === "connected";
-        for (const button of mapModeButtons) {
-          button.setAttribute("aria-pressed", String(button.dataset.mapMode === activeMapMode));
-        }
+        mapModeSelect.value = activeMapMode;
         connectedMapEmpty.hidden = !isConnectedMode ||
           (!connectedMapError && connectedAircraftMarkers.size > 0);
         pilotCountContainer.hidden = isConnectedMode || !settings.showPilotCount;
@@ -2793,9 +2712,7 @@
         syncSettingsControls();
         saveSettings();
       });
-      mapModeButtons.forEach(button => {
-        button.addEventListener("click", () => setMapMode(button.dataset.mapMode));
-      });
+      mapModeSelect.addEventListener("change", () => setMapMode(mapModeSelect.value));
       document.querySelector("[data-close-settings]").addEventListener("click", () => {
         settingsDialog.close();
       });
