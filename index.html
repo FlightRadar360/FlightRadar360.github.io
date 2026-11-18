@@ -1133,7 +1133,7 @@
       <section class="connected-map-empty" aria-labelledby="connected-map-title" data-connected-map-empty hidden>
         <p class="connected-map-empty-kicker">Tampermonkey Map</p>
         <h2 id="connected-map-title">No connected users yet</h2>
-        <p>This separate map is reserved for pilots using the FlightRadar360 Tampermonkey script. Connected aircraft display will be added in a later stage.</p>
+        <p data-connected-map-message>Aircraft appear here when a GeoFS pilot enables live sharing in the FlightRadar360 Tampermonkey script.</p>
       </section>
       <button
         class="heading-mode-toggle"
@@ -1333,6 +1333,8 @@
       integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
       crossorigin=""
     ></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.min.js"></script>
+    <script src="./flight-radar360-config.js"></script>
     <script>
       const defaultSettings = Object.freeze({
         basemap: "satellite",
@@ -1395,6 +1397,8 @@
       const streetMapToggle = document.querySelector("[data-street-map-toggle]");
       const mapModeButtons = [...document.querySelectorAll("[data-map-mode]")];
       const connectedMapEmpty = document.querySelector("[data-connected-map-empty]");
+      const connectedMapTitle = document.querySelector("#connected-map-title");
+      const connectedMapMessage = document.querySelector("[data-connected-map-message]");
       const speedFormats = Object.freeze({
         kts: { factor: 1, unit: "kts" },
         kmh: { factor: 1.852, unit: "km/h" },
@@ -1467,6 +1471,11 @@
 
       const aircraftLayer = L.layerGroup();
       if (settings.showAircraft) aircraftLayer.addTo(map);
+      const connectedAircraftLayer = L.layerGroup();
+      const connectedAircraftMarkers = new Map();
+      let connectedMapError = false;
+      let connectedMapClient = null;
+      let connectedMapRefreshInFlight = false;
       const headingLayer = L.layerGroup().addTo(map);
       const aircraftMarkers = new Map();
       const aircraftData = new Map();
@@ -1534,6 +1543,8 @@
       function syncAircraftLayerVisibility() {
         if (settings.showAircraft && activeMapMode === "geofs") aircraftLayer.addTo(map);
         else map.removeLayer(aircraftLayer);
+        if (activeMapMode === "connected") connectedAircraftLayer.addTo(map);
+        else map.removeLayer(connectedAircraftLayer);
       }
 
       function syncMapModeControls() {
@@ -1541,7 +1552,8 @@
         for (const button of mapModeButtons) {
           button.setAttribute("aria-pressed", String(button.dataset.mapMode === activeMapMode));
         }
-        connectedMapEmpty.hidden = !isConnectedMode;
+        connectedMapEmpty.hidden = !isConnectedMode ||
+          (!connectedMapError && connectedAircraftMarkers.size > 0);
         pilotCountContainer.hidden = isConnectedMode || !settings.showPilotCount;
         atcToggle.hidden = isConnectedMode;
         searchContainer.hidden = isConnectedMode || !settings.showSearch;
@@ -1578,6 +1590,151 @@
         map.setView(view?.center ?? [20, 0], view?.zoom ?? 2, { animate: true });
         renderAircraftMarkers();
         if (mode === "geofs") restoreAircraftFromHash();
+        else void refreshConnectedAircraft();
+      }
+
+      function getConnectedMapClient() {
+        if (connectedMapClient) return connectedMapClient;
+        const config = globalThis.FLIGHTRADAR360_CONFIG;
+        if (
+          !config ||
+          typeof config.supabaseUrl !== "string" ||
+          !/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(config.supabaseUrl) ||
+          config.supabaseUrl.includes("YOUR_PROJECT_ID") ||
+          typeof config.supabaseAnonKey !== "string" ||
+          config.supabaseAnonKey.length < 20 ||
+          config.supabaseAnonKey.includes("YOUR_SUPABASE")
+        ) {
+          throw new Error("The FlightRadar360 Supabase project has not been configured.");
+        }
+        if (!globalThis.supabase || typeof globalThis.supabase.createClient !== "function") {
+          throw new Error("The Supabase client could not be loaded.");
+        }
+        connectedMapClient = globalThis.supabase.createClient(
+          config.supabaseUrl,
+          config.supabaseAnonKey,
+          { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } }
+        );
+        return connectedMapClient;
+      }
+
+      async function ensureConnectedMapSession(client) {
+        const currentSession = await client.auth.getSession();
+        if (currentSession.error) throw currentSession.error;
+        if (currentSession.data.session) return;
+        const anonymousSignIn = await client.auth.signInAnonymously();
+        if (anonymousSignIn.error) throw anonymousSignIn.error;
+        if (!anonymousSignIn.data.session) {
+          throw new Error("Supabase did not return an anonymous map session.");
+        }
+      }
+
+      function createConnectedPopup(aircraft) {
+        const content = document.createElement("div");
+        const heading = document.createElement("strong");
+        heading.textContent = aircraft.callsign;
+        content.append(heading);
+        for (const [label, value] of [
+          ["Route", `${aircraft.departure_icao} → ${aircraft.arrival_icao}`],
+          ["Squawk", aircraft.squawk || "Not provided"],
+          ["Altitude", Number.isFinite(aircraft.altitude_m)
+            ? `${Math.round(aircraft.altitude_m).toLocaleString()} m`
+            : "Not provided"],
+          ["Updated", new Date(aircraft.updated_at).toLocaleTimeString()]
+        ]) {
+          const row = document.createElement("div");
+          row.textContent = `${label}: ${value}`;
+          content.append(row);
+        }
+        return content;
+      }
+
+      function createConnectedAircraftIcon() {
+        return L.divIcon({
+          className: "aircraft-marker",
+          html: aircraftIconSvg.replace(
+            'class="aircraft-icon"',
+            'class="aircraft-icon" style="transform:rotate(0deg); color:#43d9ed"'
+          ),
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        });
+      }
+
+      function setConnectedMapStatus(title, message, isError = false) {
+        connectedMapError = isError;
+        connectedMapTitle.textContent = title;
+        connectedMapMessage.textContent = message;
+        connectedMapEmpty.hidden = activeMapMode !== "connected" ||
+          (!isError && connectedAircraftMarkers.size > 0);
+      }
+
+      async function refreshConnectedAircraft() {
+        if (activeMapMode !== "connected" || connectedMapRefreshInFlight) return;
+        connectedMapRefreshInFlight = true;
+        try {
+          const client = getConnectedMapClient();
+          await ensureConnectedMapSession(client);
+          const freshSince = new Date(Date.now() - 45_000).toISOString();
+          const result = await client
+            .from("connected_aircraft")
+            .select("user_id,callsign,departure_icao,arrival_icao,squawk,latitude,longitude,altitude_m,updated_at")
+            .gt("updated_at", freshSince)
+            .order("updated_at", { ascending: false });
+          if (result.error) throw result.error;
+
+          const visibleIds = new Set();
+          for (const aircraft of result.data ?? []) {
+            if (
+              typeof aircraft.user_id !== "string" ||
+              typeof aircraft.callsign !== "string" ||
+              typeof aircraft.departure_icao !== "string" ||
+              typeof aircraft.arrival_icao !== "string" ||
+              typeof aircraft.latitude !== "number" ||
+              typeof aircraft.longitude !== "number" ||
+              !Number.isFinite(aircraft.latitude) ||
+              !Number.isFinite(aircraft.longitude) ||
+              aircraft.latitude < -90 || aircraft.latitude > 90 ||
+              aircraft.longitude < -180 || aircraft.longitude > 180 ||
+              !Number.isFinite(Date.parse(aircraft.updated_at))
+            ) continue;
+
+            visibleIds.add(aircraft.user_id);
+            let marker = connectedAircraftMarkers.get(aircraft.user_id);
+            if (!marker) {
+              marker = L.marker([aircraft.latitude, aircraft.longitude], {
+                icon: createConnectedAircraftIcon(),
+                title: aircraft.callsign,
+                riseOnHover: true
+              }).addTo(connectedAircraftLayer);
+              marker.bindPopup(createConnectedPopup(aircraft));
+              connectedAircraftMarkers.set(aircraft.user_id, marker);
+            } else {
+              marker.setLatLng([aircraft.latitude, aircraft.longitude]);
+              marker.options.title = aircraft.callsign;
+              marker.setPopupContent(createConnectedPopup(aircraft));
+            }
+          }
+
+          for (const [userId, marker] of connectedAircraftMarkers) {
+            if (visibleIds.has(userId)) continue;
+            connectedAircraftLayer.removeLayer(marker);
+            connectedAircraftMarkers.delete(userId);
+          }
+          setConnectedMapStatus(
+            "No connected users yet",
+            "Aircraft appear here when a GeoFS pilot enables live sharing in the FlightRadar360 Tampermonkey script."
+          );
+        } catch (error) {
+          console.error("Unable to refresh FlightRadar360 connected aircraft.", error);
+          setConnectedMapStatus(
+            "Connected map unavailable",
+            "Check the FlightRadar360 Supabase configuration, database setup, and anonymous sign-in settings.",
+            true
+          );
+        } finally {
+          connectedMapRefreshInFlight = false;
+        }
       }
 
       L.DomEvent.disableClickPropagation(searchContainer);
@@ -2764,6 +2921,9 @@
         console.error("Unable to load GeoFS aircraft names for ATC labels", error);
       });
       refreshAircraft();
+      window.setInterval(() => {
+        if (activeMapMode === "connected") void refreshConnectedAircraft();
+      }, 5000);
     </script>
   </body>
 </html>
