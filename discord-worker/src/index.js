@@ -35,9 +35,15 @@ function jsonResponse(body, status, headers = {}) {
 
 export default {
   async fetch(request, env) {
+    const config = {
+      clientId: env?.DISCORD_CLIENT_ID || "1572743636515295344",
+      clientSecret: env?.DISCORD_CLIENT_SECRET || "",
+      redirectUri: env?.DISCORD_REDIRECT_URI || "https://flightradar360-discord-oauth.noxdev02.workers.dev/auth/discord/callback",
+      siteOrigin: env?.SITE_ORIGIN || "https://flightradar360.github.io"
+    };
     const url = new URL(request.url);
     const origin = request.headers.get("Origin") || "";
-    const cors = corsHeaders(origin, env.SITE_ORIGIN);
+    const cors = corsHeaders(origin, config.siteOrigin);
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: cors });
@@ -46,8 +52,8 @@ export default {
     if (url.pathname === "/auth/discord") {
       const state = randomState();
       const authorize = new URL("https://discord.com/oauth2/authorize");
-      authorize.searchParams.set("client_id", env.DISCORD_CLIENT_ID);
-      authorize.searchParams.set("redirect_uri", env.DISCORD_REDIRECT_URI);
+      authorize.searchParams.set("client_id", config.clientId);
+      authorize.searchParams.set("redirect_uri", config.redirectUri);
       authorize.searchParams.set("response_type", "code");
       authorize.searchParams.set("scope", "identify email guilds");
       authorize.searchParams.set("state", state);
@@ -62,33 +68,52 @@ export default {
       const state = url.searchParams.get("state");
       const savedState = cookieValue(request, "discord_oauth_state");
       if (!code || !state || !savedState || state !== savedState) {
-        return Response.redirect(`${env.SITE_ORIGIN}/?discord_error=authorization_failed`, 302);
+        return Response.redirect(`${config.siteOrigin}/?discord_error=authorization_failed`, 302);
       }
 
       const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
         method: "POST",
         headers: { "content-type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
-          client_id: env.DISCORD_CLIENT_ID,
-          client_secret: env.DISCORD_CLIENT_SECRET,
+          client_id: config.clientId,
+          client_secret: config.clientSecret,
           grant_type: "authorization_code",
           code,
-          redirect_uri: env.DISCORD_REDIRECT_URI
+          redirect_uri: config.redirectUri
         })
       });
       if (!tokenResponse.ok) {
-        return Response.redirect(`${env.SITE_ORIGIN}/?discord_error=token_exchange_failed`, 302);
+        return Response.redirect(`${config.siteOrigin}/?discord_error=token_exchange_failed`, 302);
       }
 
       const token = await tokenResponse.json();
-      const headers = new Headers({ Location: `${env.SITE_ORIGIN}/` });
+      const discordResponse = await fetch("https://discord.com/api/users/@me", {
+        headers: { authorization: `Bearer ${token.access_token}` }
+      });
+
+      let returnUrl = `${config.siteOrigin}/?discord=1`;
+      if (discordResponse.ok) {
+        const user = await discordResponse.json();
+        const avatar = user.avatar
+          ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+          : `https://cdn.discordapp.com/embed/avatars/${Number(user.discriminator || 0) % 5}.png`;
+        const profile = new URLSearchParams({
+          discord: "1",
+          discord_id: user.id,
+          discord_name: user.global_name || user.username || "Discord user",
+          discord_avatar: avatar
+        });
+        returnUrl = `${config.siteOrigin}/?${profile.toString()}`;
+      }
+
+      const headers = new Headers({ Location: returnUrl });
       headers.append("Set-Cookie", `discord_session=${encodeURIComponent(token.access_token)}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${Math.min(token.expires_in || 604800, 604800)}`);
       headers.append("Set-Cookie", "discord_oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0");
       return new Response(null, { status: 302, headers });
     }
 
     if (url.pathname === "/api/discord/me") {
-      if (origin && origin !== env.SITE_ORIGIN) {
+      if (origin && origin !== config.siteOrigin) {
         return jsonResponse({ error: "Origin denied" }, 403, cors);
       }
       const accessToken = cookieValue(request, "discord_session");
@@ -116,7 +141,7 @@ export default {
     }
 
     if (url.pathname === "/auth/discord/logout") {
-      const headers = new Headers({ Location: `${env.SITE_ORIGIN}/` });
+      const headers = new Headers({ Location: `${config.siteOrigin}/` });
       headers.append("Set-Cookie", "discord_session=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0");
       return new Response(null, { status: 302, headers });
     }
