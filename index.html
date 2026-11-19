@@ -2851,18 +2851,38 @@
 
       const STAFF_DISCORD_ID = "1388554248144293919";
 
+      function normalizeDiscordId(value) {
+        const normalized = String(value ?? "").trim();
+        if (!normalized) return "";
+        if (/^discord[|:]\d+$/i.test(normalized)) return normalized.replace(/^discord[|:]/i, "");
+        const trailingSnowflake = normalized.match(/(\d{15,20})$/);
+        return trailingSnowflake ? trailingSnowflake[1] : normalized;
+      }
+
       function getDiscordIdentityId(user) {
         const metadata = user?.user_metadata ?? {};
         const appMetadata = user?.app_metadata ?? {};
         const identities = Array.isArray(user?.identities) ? user.identities : [];
         const discordIdentity = identities.find(identity => identity.provider === "discord");
-        return String(
-          metadata.provider_id ||
-          appMetadata.provider_id ||
-          discordIdentity?.identity_data?.provider_id ||
-          discordIdentity?.identity_data?.sub ||
-          ""
-        );
+        const identityData = discordIdentity?.identity_data ?? {};
+        const candidates = [
+          metadata.provider_id,
+          metadata.id,
+          metadata.user_id,
+          metadata.sub,
+          appMetadata.provider_id,
+          identityData.provider_id,
+          identityData.id,
+          identityData.user_id,
+          identityData.sub,
+          discordIdentity?.identity_id
+        ];
+
+        for (const candidate of candidates) {
+          const discordId = normalizeDiscordId(candidate);
+          if (/^\d{15,20}$/.test(discordId)) return discordId;
+        }
+        return "";
       }
 
       function isStaffUser(user) {
