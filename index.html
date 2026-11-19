@@ -2823,7 +2823,14 @@
         connectedMapClient = globalThis.supabase.createClient(
           config.supabaseUrl,
           config.supabaseAnonKey,
-          { auth: { persistSession: true, autoRefreshToken: true } }
+          {
+            auth: {
+              persistSession: true,
+              autoRefreshToken: true,
+              detectSessionInUrl: true,
+              storage: window.localStorage
+            }
+          }
         );
         return connectedMapClient;
       }
@@ -2929,7 +2936,9 @@
 
       async function signInWithDiscord() {
         try {
-          const redirectUrl = `${window.location.origin}${window.location.pathname}${window.location.search}${window.location.hash}`;
+          showAccountStatus("Opening Discord sign-in…");
+          sessionStorage.setItem("flight-radar360-oauth-route", `${window.location.search}${window.location.hash}`);
+          const redirectUrl = `${window.location.origin}${window.location.pathname}`;
           const { error } = await getConnectedMapClient().auth.signInWithOAuth({
             provider: "discord",
             options: {
@@ -3094,6 +3103,19 @@
           trackCurrentRadarVisit();
 
           if (event === "SIGNED_IN" && currentAuthUser) {
+            const savedRoute = sessionStorage.getItem("flight-radar360-oauth-route") || "";
+            if (savedRoute) {
+              sessionStorage.removeItem("flight-radar360-oauth-route");
+              window.history.replaceState(window.history.state, "", `${window.location.pathname}${savedRoute}`);
+            } else {
+              const cleanUrl = new URL(window.location.href);
+              cleanUrl.searchParams.delete("code");
+              cleanUrl.searchParams.delete("error");
+              cleanUrl.searchParams.delete("error_description");
+              if (/^#(access_token|error|error_code|error_description)/.test(cleanUrl.hash)) cleanUrl.hash = "";
+              window.history.replaceState(window.history.state, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+            }
+            updateSiteRoute();
             showAccountStatus(`Signed in as ${getAccountDisplayName(currentAuthUser)}.`);
           } else if (event === "SIGNED_OUT") {
             showAccountStatus("Signed out of FlightRadar360.");
