@@ -2827,7 +2827,8 @@
             auth: {
               persistSession: true,
               autoRefreshToken: true,
-              detectSessionInUrl: false,
+              detectSessionInUrl: true,
+              flowType: "pkce",
               storage: window.localStorage
             }
           }
@@ -2836,6 +2837,7 @@
       }
 
       async function ensureConnectedMapSession(client) {
+        if (new URL(window.location.href).searchParams.has("code")) return;
         const currentSession = await client.auth.getSession();
         if (currentSession.error) throw currentSession.error;
         if (currentSession.data.session) return;
@@ -3126,17 +3128,14 @@
 
         void (async () => {
           const callbackUrl = new URL(window.location.href);
-          const authCode = callbackUrl.searchParams.get("code");
-
-          if (authCode) {
-            const exchanged = await connectedClient.auth.exchangeCodeForSession(authCode);
-            if (exchanged.error) {
-              console.error("Could not exchange the FlightRadar360 Discord OAuth code.", exchanged.error);
-              showAccountStatus(`Discord sign-in failed: ${exchanged.error.message || "OAuth callback could not be completed."}`);
-              return;
-            }
-            callbackUrl.searchParams.delete("code");
+          const oauthError = callbackUrl.searchParams.get("error_description") || callbackUrl.searchParams.get("error");
+          if (oauthError) {
+            showAccountStatus(`Discord sign-in failed: ${oauthError}`);
+            callbackUrl.searchParams.delete("error");
+            callbackUrl.searchParams.delete("error_description");
+            callbackUrl.searchParams.delete("error_code");
             window.history.replaceState(window.history.state, "", `${callbackUrl.pathname}${callbackUrl.search}${callbackUrl.hash}`);
+            return;
           }
 
           const { data, error } = await connectedClient.auth.getSession();
