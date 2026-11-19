@@ -2029,19 +2029,6 @@
       <nav class="site-nav" aria-label="Main navigation">
         <a href="#docs" data-nav-page="docs">Docs</a>
         <a href="#about" data-nav-page="about">About us</a>
-        <div class="account-control" data-account-control>
-          <button class="account-signin" type="button" data-account-signin>
-            <span>Sign in</span><span class="account-discord-label">with email</span>
-          </button>
-          <button class="account-trigger" type="button" data-account-trigger aria-haspopup="true" aria-expanded="false" hidden>
-            <img class="account-avatar" data-account-avatar alt="" hidden />
-            <span data-account-name>FlightRadar360 member</span>
-          </button>
-          <div class="account-menu" data-account-menu hidden>
-            <button type="button" data-account-dashboard>Dashboard</button>
-            <button type="button" data-account-signout>Sign out</button>
-          </div>
-        </div>
       </nav>
     </header>
 
@@ -2229,99 +2216,7 @@
       </main>
     </div>
 
-    <div id="dashboard" class="site-page" data-site-page="dashboard" hidden>
-      <main class="site-main dashboard-main">
-        <header class="dashboard-heading">
-          <div>
-            <p class="site-section-kicker">Your FlightRadar360 account</p>
-            <h1>Dashboard</h1>
-            <p data-dashboard-welcome>Loading your account…</p>
-          </div>
-          <a class="site-button site-button-secondary" href="#radar">Open Radar</a>
-        </header>
-        <section class="dashboard-stat-grid" aria-label="Your FlightRadar360 stats">
-          <article class="dashboard-stat">
-            <span class="dashboard-stat-label">Account created</span>
-            <strong data-stat-created>—</strong>
-          </article>
-          <article class="dashboard-stat">
-            <span class="dashboard-stat-label">Radar sessions</span>
-            <strong data-stat-radar-visits>0</strong>
-          </article>
-          <article class="dashboard-stat">
-            <span class="dashboard-stat-label">Connected Users map visits</span>
-            <strong data-stat-connected-visits>0</strong>
-          </article>
-          <article class="dashboard-stat">
-            <span class="dashboard-stat-label">Active map minutes</span>
-            <strong data-stat-map-minutes>0</strong>
-          </article>
-        </section>
-        <p class="dashboard-footnote">
-          Stats are based on activity recorded while signed in. Counts start at zero and begin
-          accumulating after this tracking is enabled; time is counted only while the radar tab is
-          visible.
-        </p>
-      </main>
-    </div>
-
-    <div id="staff" class="site-page" data-site-page="staff" hidden>
-      <main class="site-main dashboard-main">
-        <header class="dashboard-heading">
-          <div>
-            <p class="site-section-kicker">FlightRadar360 administration</p>
-            <h1>Staff panel</h1>
-            <p data-staff-welcome>Restricted staff tools</p>
-          </div>
-          <a class="site-button site-button-secondary" href="#dashboard">Back to dashboard</a>
-        </header>
-
-        <section class="staff-tabs" aria-label="Staff views">
-          <button class="staff-tab" type="button" data-staff-tab="flights" aria-selected="true">All flights</button>
-          <button class="staff-tab" type="button" data-staff-tab="images" aria-selected="false">Flight images</button>
-        </section>
-
-        <section data-staff-panel="flights">
-          <div class="staff-grid">
-            <article class="staff-section"><span class="dashboard-stat-label">Live GeoFS</span><strong data-staff-geofs-count>0</strong></article>
-            <article class="staff-section"><span class="dashboard-stat-label">Connected</span><strong data-staff-connected-count>0</strong></article>
-            <article class="staff-section"><span class="dashboard-stat-label">Last update</span><strong data-staff-updated>—</strong></article>
-          </div>
-          <section class="staff-section">
-            <div class="staff-flight-table-wrap">
-              <table class="staff-flight-table">
-                <thead><tr><th>Callsign</th><th>Source</th><th>Altitude</th><th>Speed</th><th>Heading</th><th>Position</th><th>Updated</th></tr></thead>
-                <tbody data-staff-flight-rows><tr><td colspan="7">Waiting for live flight data...</td></tr></tbody>
-              </table>
-            </div>
-          </section>
-        </section>
-
-        <section data-staff-panel="images" hidden>
-          <div class="staff-notice">
-            <div>
-              <strong>Flight image approvals are unavailable now.</strong>
-              <p>Approve and reject tools are being built over the next few days. No uploads are being modified or published yet.</p>
-            </div>
-          </div>
-        </section>
-      </main>
-    </div>
-
     <main id="map" class="is-loading" aria-label="Interactive map with live GeoFS multiplayer aircraft" hidden>
-      <div class="account-control map-account-control" data-account-control>
-        <button class="account-signin" type="button" data-account-signin>
-          <span>Sign in</span><span class="account-discord-label">with email</span>
-        </button>
-        <button class="account-trigger" type="button" data-account-trigger aria-haspopup="true" aria-expanded="false" hidden>
-          <img class="account-avatar" data-account-avatar alt="" hidden />
-          <span data-account-name>FlightRadar360 member</span>
-        </button>
-        <div class="account-menu" data-account-menu hidden>
-          <button type="button" data-account-dashboard>Dashboard</button>
-          <button type="button" data-account-signout>Sign out</button>
-        </div>
-      </div>
       <div class="map-toolbar" aria-label="Map controls">
         <div class="pilot-count" role="status" aria-live="polite">
           <span class="pilot-count-label"><span class="live-indicator" aria-hidden="true"></span>LIVE</span>
@@ -2497,27 +2392,6 @@
         </footer>
       </dialog>
 
-      <dialog class="auth-dialog" aria-labelledby="auth-dialog-title" data-auth-dialog>
-        <div class="auth-dialog-header">
-          <h2 id="auth-dialog-title">Sign in to FlightRadar360</h2>
-          <button class="flight-details-close" type="button" data-close-auth aria-label="Close sign-in">×</button>
-        </div>
-        <form data-auth-form>
-          <div class="auth-field">
-            <label for="auth-email">Email</label>
-            <input id="auth-email" name="email" type="email" autocomplete="email" required />
-          </div>
-          <div class="auth-field">
-            <label for="auth-password">Password</label>
-            <input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="6" required />
-          </div>
-          <div class="auth-actions">
-            <button type="submit" data-auth-submit>Sign in</button>
-            <button type="button" data-auth-signup>Create account</button>
-          </div>
-        </form>
-      </dialog>
-
       <div class="map-search-container">
         <input
           class="map-search"
@@ -2630,13 +2504,7 @@
 
       const settings = readSettings();
       const siteHeader = document.querySelector("[data-site-header]");
-      const accountControls = [...document.querySelectorAll("[data-account-control]")];
       const accountStatus = document.querySelector("[data-account-status]");
-      const dashboardWelcome = document.querySelector("[data-dashboard-welcome]");
-      const dashboardCreated = document.querySelector("[data-stat-created]");
-      const dashboardRadarVisits = document.querySelector("[data-stat-radar-visits]");
-      const dashboardConnectedVisits = document.querySelector("[data-stat-connected-visits]");
-      const dashboardMapMinutes = document.querySelector("[data-stat-map-minutes]");
       const sitePages = new Map(
         [...document.querySelectorAll("[data-site-page]")].map(page => [page.dataset.sitePage, page])
       );
@@ -2654,8 +2522,6 @@
       });
       let activeMapMode = "geofs";
       let activeSitePage = null;
-      let radarVisitTracked = false;
-      let currentAuthUser = null;
       let mapActivityTimer = null;
       let accountStatusTimer = null;
       let activityTrackingErrorShown = false;
@@ -2838,7 +2704,6 @@
           zoom: map.getZoom()
         };
         activeMapMode = mode;
-        if (mode === "connected") recordMemberActivity("connected_map_open");
         syncMapModeControls();
         const view = mapModeViews[mode];
         map.setView(view?.center ?? [20, 0], view?.zoom ?? 2, { animate: true });
@@ -2900,290 +2765,6 @@
           accountStatus.hidden = true;
           accountStatusTimer = null;
         }, 7000);
-      }
-
-      function isStaffUser() {
-        return false;
-      }
-
-      function getAccountDisplayName(user) {
-        const metadata = user?.user_metadata ?? {};
-        return metadata.full_name || metadata.name || metadata.username || user?.email?.split("@")[0] || "FlightRadar360 member";
-      }
-
-      function renderAccountControls() {
-        const user = currentAuthUser?.is_anonymous ? null : currentAuthUser;
-        const metadata = user?.user_metadata ?? {};
-        const avatarUrl = typeof metadata.avatar_url === "string" ? metadata.avatar_url : "";
-        for (const control of accountControls) {
-          const signInButton = control.querySelector("[data-account-signin]");
-          const trigger = control.querySelector("[data-account-trigger]");
-          const avatar = control.querySelector("[data-account-avatar]");
-          const name = control.querySelector("[data-account-name]");
-          const menu = control.querySelector("[data-account-menu]");
-          const staffButton = control.querySelector("[data-account-staff]");
-          signInButton.hidden = Boolean(user);
-          trigger.hidden = !user;
-          name.textContent = user ? getAccountDisplayName(user) : "FlightRadar360 member";
-          if (staffButton) staffButton.hidden = !isStaffUser(user);
-          if (user && avatarUrl) {
-            avatar.src = avatarUrl;
-            avatar.hidden = false;
-            avatar.onerror = () => {
-              avatar.hidden = true;
-            };
-          } else {
-            avatar.removeAttribute("src");
-            avatar.hidden = true;
-            avatar.onerror = null;
-          }
-          if (!user) {
-            menu.hidden = true;
-            trigger.setAttribute("aria-expanded", "false");
-          }
-        }
-      }
-
-      const authDialog = document.querySelector("[data-auth-dialog]");
-      const authForm = document.querySelector("[data-auth-form]");
-      const authEmail = document.querySelector("#auth-email");
-      const authPassword = document.querySelector("#auth-password");
-
-      function openAuthDialog() {
-        if (!authDialog.open) authDialog.showModal();
-        window.setTimeout(() => authEmail.focus(), 0);
-      }
-
-      async function signInWithEmail() {
-        const email = authEmail.value.trim();
-        const password = authPassword.value;
-        if (!email || !password) return;
-
-        const submitButton = authForm.querySelector("[data-auth-submit]");
-        submitButton.disabled = true;
-        submitButton.textContent = "Signing in…";
-        try {
-          const { error } = await getConnectedMapClient().auth.signInWithPassword({ email, password });
-          if (error) throw error;
-          authDialog.close();
-          showAccountStatus("Signed in successfully.");
-        } catch (error) {
-          console.error("FlightRadar360 email sign-in failed.", error);
-          showAccountStatus(`Sign-in failed: ${error.message || "check your email and password."}`);
-        } finally {
-          submitButton.disabled = false;
-          submitButton.textContent = "Sign in";
-        }
-      }
-
-      async function signUpWithEmail() {
-        const email = authEmail.value.trim();
-        const password = authPassword.value;
-        if (!email || !password) return;
-
-        const signUpButton = authForm.querySelector("[data-auth-signup]");
-        signUpButton.disabled = true;
-        signUpButton.textContent = "Creating…";
-        try {
-          const { data, error } = await getConnectedMapClient().auth.signUp({ email, password });
-          if (error) throw error;
-          if (data.session) {
-            authDialog.close();
-            showAccountStatus("Account created and signed in.");
-          } else {
-            showAccountStatus("Account created. Check your email to confirm it, then sign in.");
-          }
-        } catch (error) {
-          console.error("FlightRadar360 account creation failed.", error);
-          showAccountStatus(`Account creation failed: ${error.message || "please try again."}`);
-        } finally {
-          signUpButton.disabled = false;
-          signUpButton.textContent = "Create account";
-        }
-      }
-
-      async function signOutAccount() {
-        try {
-          const { error } = await getConnectedMapClient().auth.signOut();
-          if (error) throw error;
-          for (const control of accountControls) {
-            control.querySelector("[data-account-menu]").hidden = true;
-            control.querySelector("[data-account-trigger]").setAttribute("aria-expanded", "false");
-          }
-          if (activeSitePage === "dashboard") window.location.hash = "home";
-          showAccountStatus("You have been signed out.");
-        } catch (error) {
-          console.error("FlightRadar360 could not sign out.", error);
-          showAccountStatus(`Sign out failed: ${error.message || "please try again."}`);
-        }
-      }
-
-      function recordMemberActivity(eventType) {
-        if (!currentAuthUser || currentAuthUser.is_anonymous) return;
-        void getConnectedMapClient()
-          .rpc("record_member_activity", { p_event_type: eventType })
-          .then(({ error }) => {
-            if (error) throw error;
-          })
-          .catch(error => {
-            console.error(`Unable to record FlightRadar360 activity (${eventType}).`, error);
-            if (!activityTrackingErrorShown) {
-              activityTrackingErrorShown = true;
-              showAccountStatus("Dashboard activity could not be recorded. Check that the latest Supabase setup SQL has been run.");
-            }
-          });
-      }
-
-      function trackCurrentRadarVisit() {
-        if (
-          activeSitePage === "radar" &&
-          !currentAuthUser?.is_anonymous &&
-          currentAuthUser &&
-          !radarVisitTracked
-        ) {
-          radarVisitTracked = true;
-          recordMemberActivity("radar_open");
-        }
-      }
-
-      async function loadMemberDashboard() {
-        if (!currentAuthUser || currentAuthUser.is_anonymous) {
-          dashboardWelcome.textContent = "Sign in with email to view your account stats.";
-          dashboardCreated.textContent = "—";
-          dashboardRadarVisits.textContent = "0";
-          dashboardConnectedVisits.textContent = "0";
-          dashboardMapMinutes.textContent = "0";
-          return;
-        }
-        const initialUserId = currentAuthUser.id;
-        try {
-          const client = getConnectedMapClient();
-          const { data, error } = await client.auth.getUser();
-          if (error) throw error;
-          const user = data.user;
-          if (!user || user.id !== initialUserId || currentAuthUser?.id !== initialUserId) return;
-
-          dashboardWelcome.textContent = `Welcome, ${getAccountDisplayName(user)}.`;
-          const createdAt = Date.parse(user.created_at);
-          dashboardCreated.textContent = Number.isFinite(createdAt)
-            ? new Date(createdAt).toLocaleDateString(undefined, {
-              year: "numeric",
-              month: "short",
-              day: "numeric"
-            })
-            : "Unknown";
-
-          const [radarVisits, connectedVisits, mapMinutes] = await Promise.all([
-            client.from("member_activity_events")
-              .select("id", { count: "exact", head: true })
-              .eq("event_type", "radar_open"),
-            client.from("member_activity_events")
-              .select("id", { count: "exact", head: true })
-              .eq("event_type", "connected_map_open"),
-            client.from("member_activity_events")
-              .select("id", { count: "exact", head: true })
-              .eq("event_type", "active_map_minute")
-          ]);
-          for (const result of [radarVisits, connectedVisits, mapMinutes]) {
-            if (result.error) throw result.error;
-          }
-          if (currentAuthUser?.id !== initialUserId) return;
-          dashboardRadarVisits.textContent = String(radarVisits.count ?? 0);
-          dashboardConnectedVisits.textContent = String(connectedVisits.count ?? 0);
-          dashboardMapMinutes.textContent = String(mapMinutes.count ?? 0);
-        } catch (error) {
-          console.error("Unable to load FlightRadar360 dashboard stats.", error);
-          dashboardWelcome.textContent = "Some account stats could not be loaded.";
-          showAccountStatus(`Dashboard stats unavailable: ${error.message || "check the database setup."}`);
-        }
-      }
-
-      for (const control of accountControls) {
-        control.querySelector("[data-account-signin]").addEventListener("click", () => {
-          openAuthDialog();
-        });
-        control.querySelector("[data-account-trigger]").addEventListener("click", event => {
-          const trigger = event.currentTarget;
-          const menu = control.querySelector("[data-account-menu]");
-          const open = menu.hidden;
-          menu.hidden = !open;
-          trigger.setAttribute("aria-expanded", String(open));
-        });
-        control.querySelector("[data-account-dashboard]").addEventListener("click", () => {
-          if (!currentAuthUser || currentAuthUser.is_anonymous) {
-            showAccountStatus("Sign in with email to open your dashboard.");
-            return;
-          }
-          for (const accountControl of accountControls) {
-            accountControl.querySelector("[data-account-menu]").hidden = true;
-            accountControl.querySelector("[data-account-trigger]").setAttribute("aria-expanded", "false");
-          }
-          window.location.hash = "dashboard";
-        });
-        control.querySelector("[data-account-staff]")?.addEventListener("click", () => {
-          if (!isStaffUser(currentAuthUser)) {
-            showAccountStatus("Staff access is restricted.");
-            return;
-          }
-          for (const accountControl of accountControls) {
-            accountControl.querySelector("[data-account-menu]").hidden = true;
-            accountControl.querySelector("[data-account-trigger]").setAttribute("aria-expanded", "false");
-          }
-          window.location.hash = "staff";
-        });
-        control.querySelector("[data-account-signout]").addEventListener("click", () => {
-          void signOutAccount();
-        });
-      }
-
-      document.addEventListener("click", event => {
-        for (const control of accountControls) {
-          if (control.contains(event.target)) continue;
-          control.querySelector("[data-account-menu]").hidden = true;
-          control.querySelector("[data-account-trigger]").setAttribute("aria-expanded", "false");
-        }
-      });
-
-      authForm.addEventListener("submit", event => {
-        event.preventDefault();
-        void signInWithEmail();
-      });
-      authForm.querySelector("[data-auth-signup]").addEventListener("click", () => void signUpWithEmail());
-      document.querySelector("[data-close-auth]").addEventListener("click", () => authDialog.close());
-      authDialog.addEventListener("click", event => {
-        if (event.target === authDialog) authDialog.close();
-      });
-
-      try {
-        const connectedClient = getConnectedMapClient();
-        connectedClient.auth.onAuthStateChange((event, session) => {
-          currentAuthUser = session?.user?.is_anonymous ? null : (session?.user ?? null);
-          renderAccountControls();
-          trackCurrentRadarVisit();
-
-          if (event === "SIGNED_IN" && currentAuthUser) {
-            showAccountStatus(`Signed in as ${getAccountDisplayName(currentAuthUser)}.`);
-          } else if (event === "SIGNED_OUT") {
-            showAccountStatus("Signed out of FlightRadar360.");
-          }
-
-          if (activeSitePage === "dashboard") queueMicrotask(() => void loadMemberDashboard());
-        });
-
-        void connectedClient.auth.getSession().then(({ data, error }) => {
-          if (error) {
-            console.error("Could not restore the FlightRadar360 account session.", error);
-            showAccountStatus(`Account session failed: ${error.message || "please sign in again."}`);
-            return;
-          }
-          currentAuthUser = data.session?.user?.is_anonymous ? null : (data.session?.user ?? null);
-          renderAccountControls();
-          trackCurrentRadarVisit();
-          if (activeSitePage === "dashboard") void loadMemberDashboard();
-        });
-      } catch (error) {
-        console.error("FlightRadar360 account sign-in is unavailable.", error);
-        showAccountStatus(`Account sign-in unavailable: ${error.message || "check the Supabase setup."}`);
       }
 
       function createConnectedPopup(aircraft) {
@@ -4426,7 +4007,6 @@
         }
         restoreAircraftFromHash();
         if (!callsignResults.hidden) renderCallsignResults();
-        if (activeSitePage === "staff") renderStaffFlights();
         return snapshotAircraftIds.size;
       }
 
@@ -4523,93 +4103,23 @@
         }
       }
 
-      function setStaffTab(tabName) {
-        document.querySelectorAll("[data-staff-tab]").forEach(tab => {
-          tab.setAttribute("aria-selected", String(tab.dataset.staffTab === tabName));
-        });
-        document.querySelectorAll("[data-staff-panel]").forEach(panel => {
-          panel.hidden = panel.dataset.staffPanel !== tabName;
-        });
-      }
-
-      document.querySelectorAll("[data-staff-tab]").forEach(tab => {
-        tab.addEventListener("click", () => setStaffTab(tab.dataset.staffTab));
-      });
-
-      function formatStaffNumber(value, digits = 0) {
-        return Number.isFinite(value) ? value.toLocaleString(undefined, { maximumFractionDigits: digits }) : "—";
-      }
-
-      function renderStaffFlights() {
-        const rows = document.querySelector("[data-staff-flight-rows]");
-        const geofsCount = document.querySelector("[data-staff-geofs-count]");
-        const connectedCount = document.querySelector("[data-staff-connected-count]");
-        const updated = document.querySelector("[data-staff-updated]");
-        if (!rows || !geofsCount || !connectedCount || !updated) return;
-
-        const aircraft = [...aircraftData.values()].filter(item => item.callsign);
-        geofsCount.textContent = aircraft.length.toLocaleString();
-        connectedCount.textContent = connectedAircraftMarkers.size.toLocaleString();
-        updated.textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-
-        rows.replaceChildren();
-        if (!aircraft.length) {
-          const row = document.createElement("tr");
-          const cell = document.createElement("td");
-          cell.colSpan = 7;
-          cell.textContent = "No live GeoFS flights are available.";
-          row.append(cell);
-          rows.append(row);
-          return;
-        }
-
-        for (const flight of aircraft.sort((a, b) => a.callsign.localeCompare(b.callsign)).slice(0, 500)) {
-          const row = document.createElement("tr");
-          const values = [
-            flight.callsign,
-            "GeoFS Live",
-            flight.altitudeMeters !== null ? formatAltitude(flight.altitudeMeters) : "—",
-            flight.speedKnots !== null ? formatSpeed(flight.speedKnots) : "—",
-            Number.isFinite(flight.heading) ? `${Math.round(flight.heading) % 360}°` : "—",
-            `${formatStaffNumber(flight.latitude, 4)}, ${formatStaffNumber(flight.longitude, 4)}`,
-            new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-          ];
-          for (const value of values) {
-            const cell = document.createElement("td");
-            cell.textContent = value;
-            row.append(cell);
-          }
-          rows.append(row);
-        }
-      }
-
       function updateSiteRoute() {
         const fragment = window.location.hash.slice(1);
         const normalizedFragment = fragment.toLowerCase();
         const requestedPage = normalizedFragment === "docs"
           ? "docs"
-          : normalizedFragment === "dashboard"
-            ? "dashboard"
-          : normalizedFragment === "staff"
-            ? "staff"
           : normalizedFragment === "radar" ||
             (normalizedFragment && !["home", "about"].includes(normalizedFragment))
             ? "radar"
             : "home";
 
         if (requestedPage !== activeSitePage) {
-          radarVisitTracked = false;
           activeSitePage = requestedPage;
-          trackCurrentRadarVisit();
         }
 
         document.body.classList.toggle("radar-active", requestedPage === "radar");
         document.title = requestedPage === "docs"
           ? "Docs | FlightRadar360"
-          : requestedPage === "dashboard"
-            ? "Dashboard | FlightRadar360"
-          : requestedPage === "staff"
-            ? "Staff Panel | FlightRadar360"
             : requestedPage === "radar"
               ? "Live Radar | FlightRadar360"
               : "FlightRadar360 | GeoFS Live Radar";
@@ -4634,15 +4144,6 @@
             syncMapModeControls();
             startRadarFeeds();
           });
-        } else if (requestedPage === "dashboard") {
-          void loadMemberDashboard();
-        } else if (requestedPage === "staff") {
-          if (!isStaffUser(currentAuthUser)) {
-            showAccountStatus("Staff access is restricted.");
-            window.location.hash = "home";
-            return;
-          }
-          renderStaffFlights();
         } else {
           if (aircraftRefreshTimeout !== null) {
             window.clearTimeout(aircraftRefreshTimeout);
@@ -4656,8 +4157,6 @@
             window.requestAnimationFrame(() => {
               document.querySelector("#docs").scrollIntoView({ block: "start" });
             });
-          } else if (normalizedFragment === "dashboard") {
-            window.scrollTo({ top: 0, behavior: "smooth" });
           } else if (!fragment || normalizedFragment === "home") {
             window.scrollTo({ top: 0, behavior: "smooth" });
           }
@@ -4666,14 +4165,6 @@
 
       window.addEventListener("hashchange", updateSiteRoute);
       updateSiteRoute();
-      mapActivityTimer = window.setInterval(() => {
-        if (
-          activeSitePage === "radar" &&
-          document.visibilityState === "visible" &&
-          currentAuthUser &&
-          !currentAuthUser.is_anonymous
-        ) recordMemberActivity("active_map_minute");
-      }, 60_000);
 
       if ("IntersectionObserver" in window) {
         const revealObserver = new IntersectionObserver(entries => {
