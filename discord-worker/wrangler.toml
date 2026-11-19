@@ -1,0 +1,8 @@
+name = "flightradar360-discord-oauth"
+main = "src/index.js"
+compatibility_date = "2026-11-19"
+
+[vars]
+DISCORD_CLIENT_ID = "1572743636515295344"
+DISCORD_REDIRECT_URI = "https://flightradar360-discord-oauth.YOUR_SUBDOMAIN.workers.dev/auth/discord/callback"
+SITE_ORIGIN = "https://flightradar360.github.io"

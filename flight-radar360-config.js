@@ -2,5 +2,7 @@
 // Never put a Supabase service-role key in this file.
 var FLIGHTRADAR360_CONFIG = Object.freeze({
   supabaseUrl: "https://knqjkjqkdvpvegnswijt.supabase.co",
-  supabaseAnonKey: "sb_publishable_Zxw1hMfpAYgEBatyaCD__w_Va4BJiMj"
+  supabaseAnonKey: "sb_publishable_Zxw1hMfpAYgEBatyaCD__w_Va4BJiMj",
+  discordClientId: "1572743636515295344",
+  discordAuthUrl: ""
 });

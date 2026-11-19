@@ -2029,6 +2029,18 @@
       <nav class="site-nav" aria-label="Main navigation">
         <a href="#docs" data-nav-page="docs">Docs</a>
         <a href="#about" data-nav-page="about">About us</a>
+        <div class="account-control">
+          <button class="account-signin" type="button" data-discord-signin>
+            <span>Sign in</span><span class="account-discord-label">with Discord</span>
+          </button>
+          <button class="account-trigger" type="button" data-discord-profile aria-haspopup="true" aria-expanded="false" hidden>
+            <img class="account-avatar" data-discord-avatar alt="" hidden />
+            <span data-discord-name>Discord user</span>
+          </button>
+          <div class="account-menu" data-discord-menu hidden>
+            <button type="button" data-discord-signout>Sign out</button>
+          </div>
+        </div>
       </nav>
     </header>
 
@@ -2504,6 +2516,13 @@
 
       const settings = readSettings();
       const siteHeader = document.querySelector("[data-site-header]");
+      const discordConfig = globalThis.FLIGHTRADAR360_CONFIG || {};
+      const discordAuthUrl = typeof discordConfig.discordAuthUrl === "string"
+        ? discordConfig.discordAuthUrl.replace(/\/$/, "")
+        : "";
+      const discordClientId = typeof discordConfig.discordClientId === "string"
+        ? discordConfig.discordClientId
+        : "";
       const accountStatus = document.querySelector("[data-account-status]");
       const sitePages = new Map(
         [...document.querySelectorAll("[data-site-page]")].map(page => [page.dataset.sitePage, page])
@@ -2745,6 +2764,107 @@
         return connectedMapClient;
       }
 
+      async function loadDiscordUser() {
+        try {
+          if (!discordAuthUrl) {
+            const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+            const accessToken = fragment.get("access_token") || sessionStorage.getItem("discord_access_token");
+            if (!accessToken) {
+              discordSignInButton.hidden = false;
+              discordProfileButton.hidden = true;
+              return;
+            }
+
+            sessionStorage.setItem("discord_access_token", accessToken);
+            const discordResponse = await fetch("https://discord.com/api/users/@me", {
+              headers: { authorization: `Bearer ${accessToken}` }
+            });
+            if (!discordResponse.ok) throw new Error("Discord session unavailable");
+            const user = await discordResponse.json();
+            const avatar = user.avatar
+              ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+              : `https://cdn.discordapp.com/embed/avatars/${Number(user.discriminator || 0) % 5}.png`;
+
+            discordSignInButton.hidden = true;
+            discordProfileButton.hidden = false;
+            discordName.textContent = user.global_name || user.username || "Discord user";
+            discordAvatar.src = avatar;
+            discordAvatar.hidden = false;
+
+            if (fragment.has("access_token")) {
+              window.history.replaceState(window.history.state, "", `${window.location.pathname}${window.location.search}${window.location.hash}`.replace(/#access_token=.*/, "#home"));
+            }
+            return;
+          }
+
+          const response = await fetch(`${discordAuthUrl}/api/discord/me`, { credentials: "include" });
+          if (!response.ok) throw new Error("Discord session unavailable");
+          const payload = await response.json();
+          const user = payload.user;
+          if (!user) {
+            discordSignInButton.hidden = false;
+            discordProfileButton.hidden = true;
+            return;
+          }
+
+          discordSignInButton.hidden = true;
+          discordProfileButton.hidden = false;
+          discordName.textContent = user.globalName || user.username || "Discord user";
+          discordAvatar.src = user.avatar;
+          discordAvatar.hidden = false;
+        } catch (error) {
+          console.error("Could not load Discord profile.", error);
+          discordSignInButton.hidden = false;
+          discordProfileButton.hidden = true;
+        }
+      }
+
+      discordSignInButton.addEventListener("click", () => {
+        if (!discordAuthUrl) {
+          if (!discordClientId) {
+            showAccountStatus("Discord login is not configured yet.");
+            return;
+          }
+          const authorize = new URL("https://discord.com/oauth2/authorize");
+          authorize.searchParams.set("client_id", discordClientId);
+          authorize.searchParams.set("redirect_uri", `${window.location.origin}${window.location.pathname}`);
+          authorize.searchParams.set("response_type", "token");
+          authorize.searchParams.set("scope", "identify");
+          window.location.assign(authorize.toString());
+          return;
+        }
+        window.location.assign(`${discordAuthUrl}/auth/discord`);
+      });
+
+      discordProfileButton.addEventListener("click", () => {
+        const open = discordMenu.hidden;
+        discordMenu.hidden = !open;
+        discordProfileButton.setAttribute("aria-expanded", String(open));
+      });
+
+      document.querySelector("[data-discord-signout]").addEventListener("click", () => {
+        if (discordAuthUrl) {
+          window.location.assign(`${discordAuthUrl}/auth/discord/logout`);
+          return;
+        }
+        sessionStorage.removeItem("discord_access_token");
+        discordSignInButton.hidden = false;
+        discordProfileButton.hidden = true;
+        discordMenu.hidden = true;
+        discordProfileButton.setAttribute("aria-expanded", "false");
+        discordAvatar.removeAttribute("src");
+        showAccountStatus("Signed out of Discord.");
+      });
+
+      document.addEventListener("click", event => {
+        const control = discordProfileButton.closest(".account-control");
+        if (control?.contains(event.target)) return;
+        discordMenu.hidden = true;
+        discordProfileButton.setAttribute("aria-expanded", "false");
+      });
+
+      void loadDiscordUser();
+
       async function ensureConnectedMapSession(client) {
         if (new URL(window.location.href).searchParams.has("code")) return;
         const currentSession = await client.auth.getSession();
@@ -2756,6 +2876,12 @@
           throw new Error("Supabase did not return an anonymous map session.");
         }
       }
+
+      const discordSignInButton = document.querySelector("[data-discord-signin]");
+      const discordProfileButton = document.querySelector("[data-discord-profile]");
+      const discordAvatar = document.querySelector("[data-discord-avatar]");
+      const discordName = document.querySelector("[data-discord-name]");
+      const discordMenu = document.querySelector("[data-discord-menu]");
 
       function showAccountStatus(message) {
         accountStatus.textContent = message;
