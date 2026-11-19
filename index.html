@@ -2827,7 +2827,7 @@
             auth: {
               persistSession: true,
               autoRefreshToken: true,
-              detectSessionInUrl: true,
+              detectSessionInUrl: false,
               storage: window.localStorage
             }
           }
@@ -3124,16 +3124,35 @@
           if (activeSitePage === "dashboard") queueMicrotask(() => void loadMemberDashboard());
         });
 
-        void connectedClient.auth.getSession().then(({ data, error }) => {
+        void (async () => {
+          const callbackUrl = new URL(window.location.href);
+          const authCode = callbackUrl.searchParams.get("code");
+
+          if (authCode) {
+            const exchanged = await connectedClient.auth.exchangeCodeForSession(authCode);
+            if (exchanged.error) {
+              console.error("Could not exchange the FlightRadar360 Discord OAuth code.", exchanged.error);
+              showAccountStatus(`Discord sign-in failed: ${exchanged.error.message || "OAuth callback could not be completed."}`);
+              return;
+            }
+            callbackUrl.searchParams.delete("code");
+            window.history.replaceState(window.history.state, "", `${callbackUrl.pathname}${callbackUrl.search}${callbackUrl.hash}`);
+          }
+
+          const { data, error } = await connectedClient.auth.getSession();
           if (error) {
             console.error("Could not restore the FlightRadar360 account session.", error);
+            showAccountStatus(`Account session failed: ${error.message || "please sign in again."}`);
             return;
           }
           currentAuthUser = data.session?.user?.is_anonymous ? null : (data.session?.user ?? null);
           renderAccountControls();
           trackCurrentRadarVisit();
+          if (currentAuthUser) {
+            showAccountStatus(`Signed in as ${getAccountDisplayName(currentAuthUser)}.`);
+          }
           if (activeSitePage === "dashboard") void loadMemberDashboard();
-        });
+        })();
       } catch (error) {
         console.error("FlightRadar360 account sign-in is unavailable.", error);
         showAccountStatus(`Account sign-in unavailable: ${error.message || "check the Supabase setup."}`);
