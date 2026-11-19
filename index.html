@@ -2827,7 +2827,7 @@
             auth: {
               persistSession: true,
               autoRefreshToken: true,
-              detectSessionInUrl: true,
+              detectSessionInUrl: false,
               flowType: "pkce",
               storage: window.localStorage
             }
@@ -3138,13 +3138,32 @@
             return;
           }
 
-          const { data, error } = await connectedClient.auth.getSession();
-          if (error) {
-            console.error("Could not restore the FlightRadar360 account session.", error);
-            showAccountStatus(`Account session failed: ${error.message || "please sign in again."}`);
-            return;
+          const authCode = callbackUrl.searchParams.get("code");
+          let data = null;
+
+          if (authCode) {
+            const exchanged = await connectedClient.auth.exchangeCodeForSession(authCode);
+            if (exchanged.error) {
+              console.error("Discord OAuth code exchange failed.", exchanged.error);
+              showAccountStatus(`Discord sign-in failed: ${exchanged.error.message || "The callback could not be completed."}`);
+              callbackUrl.searchParams.delete("code");
+              window.history.replaceState(window.history.state, "", `${callbackUrl.pathname}${callbackUrl.search}${callbackUrl.hash}`);
+              return;
+            }
+            data = exchanged.data;
+            callbackUrl.searchParams.delete("code");
+            window.history.replaceState(window.history.state, "", `${callbackUrl.pathname}${callbackUrl.search}${callbackUrl.hash}`);
+          } else {
+            const sessionResult = await connectedClient.auth.getSession();
+            if (sessionResult.error) {
+              console.error("Could not restore the FlightRadar360 account session.", sessionResult.error);
+              showAccountStatus(`Account session failed: ${sessionResult.error.message || "please sign in again."}`);
+              return;
+            }
+            data = sessionResult.data;
           }
-          currentAuthUser = data.session?.user?.is_anonymous ? null : (data.session?.user ?? null);
+
+          currentAuthUser = data?.session?.user?.is_anonymous ? null : (data?.session?.user ?? null);
           renderAccountControls();
           trackCurrentRadarVisit();
           if (currentAuthUser) {
