@@ -1677,6 +1677,25 @@
         text-transform: uppercase;
       }
 
+      .flight-link-button {
+        width: 100%;
+        min-height: 38px;
+        margin-top: 18px;
+        border: 1px solid rgba(67, 217, 237, .38);
+        border-radius: 7px;
+        color: #dafcff;
+        background: rgba(67, 217, 237, .12);
+        font: 700 .72rem Arial, sans-serif;
+        cursor: pointer;
+      }
+
+      .flight-link-button:hover,
+      .flight-link-button:focus-visible {
+        border-color: #43d9ed;
+        outline: none;
+        background: rgba(67, 217, 237, .22);
+      }
+
       .flight-details-close {
         flex: 0 0 auto;
         width: 25px;
@@ -2402,6 +2421,7 @@
           <h3>Position</h3>
           <dl class="flight-details-fields" data-flight-position-fields></dl>
         </section>
+        <button class="flight-link-button" type="button" data-flight-link>Flight Link</button>
         <div class="flight-details-updated">Updated <time data-flight-updated></time></div>
       </aside>
       <div class="map-loading" role="status" aria-live="polite" data-map-loading>
@@ -2611,6 +2631,7 @@
       const flightStatusValue = document.querySelector("[data-flight-status]");
       const flightUpdatedAt = document.querySelector("[data-flight-updated]");
       const flightDetailsClose = document.querySelector("[data-close-flight]");
+      const flightLinkButton = document.querySelector("[data-flight-link]");
       const callsignSearch = document.querySelector(".map-search");
       const callsignResults = document.querySelector("#callsign-results");
       const searchContainer = document.querySelector(".map-search-container");
@@ -3070,15 +3091,7 @@
       L.DomEvent.disableScrollPropagation(flightDetailsPanel);
 
       function getSharedCallsign() {
-        const encodedCallsign = window.location.hash.slice(1);
-        if (!encodedCallsign || ["home", "about", "docs", "radar"].includes(encodedCallsign.toLowerCase())) {
-          return null;
-        }
-        try {
-          return decodeURIComponent(encodedCallsign).trim() || null;
-        } catch {
-          return null;
-        }
+        return new URL(window.location.href).searchParams.get("flight")?.trim() || null;
       }
 
       const initialSharedCallsign = getSharedCallsign();
@@ -3555,6 +3568,40 @@
 
       flightDetailsClose.addEventListener("click", closeSelectedFlight);
 
+      async function copySelectedFlightLink() {
+        const aircraft = selectedAircraftId === null ? null : aircraftData.get(selectedAircraftId);
+        if (!aircraft?.callsign) {
+          showAccountStatus("Select a flight before creating a Flight Link.");
+          return;
+        }
+
+        const shareUrl = new URL(window.location.href);
+        shareUrl.searchParams.set("flight", aircraft.callsign);
+        shareUrl.hash = "radar";
+
+        try {
+          await navigator.clipboard.writeText(shareUrl.toString());
+        } catch {
+          const copyInput = document.createElement("textarea");
+          copyInput.value = shareUrl.toString();
+          copyInput.setAttribute("readonly", "");
+          copyInput.style.position = "fixed";
+          copyInput.style.opacity = "0";
+          document.body.append(copyInput);
+          copyInput.select();
+          document.execCommand("copy");
+          copyInput.remove();
+        }
+
+        flightLinkButton.textContent = "Link copied";
+        showAccountStatus(`Flight Link copied for ${aircraft.callsign}.`);
+        window.setTimeout(() => {
+          flightLinkButton.textContent = "Flight Link";
+        }, 1800);
+      }
+
+      flightLinkButton.addEventListener("click", () => void copySelectedFlightLink());
+
       callsignSearch.addEventListener("input", () => {
         clearAircraftHighlight();
         renderCallsignResults();
@@ -3645,7 +3692,7 @@
         renderAircraftMarkers();
       }
 
-      function focusAircraft(id, { updateUrl = true } = {}) {
+      function focusAircraft(id) {
         const aircraft = aircraftData.get(id);
         if (!aircraft) {
           renderCallsignResults();
@@ -3654,17 +3701,7 @@
 
         callsignSearch.value = aircraft.callsign;
         hideCallsignResults();
-        if (updateUrl && aircraft.callsign) {
-          const hash = `#${encodeURIComponent(aircraft.callsign)}`;
-          if (window.location.hash !== hash) {
-            window.history.replaceState(
-              window.history.state,
-              "",
-              `${window.location.pathname}${window.location.search}${hash}`
-            );
-          }
-          lastHandledSharedFlight = `${window.location.hash}:${aircraft.id}`;
-        }
+        lastHandledSharedFlight = null;
         clearAircraftHighlight();
         highlightedAircraftId = id;
         trackedAircraftId = id;
@@ -3696,10 +3733,10 @@
           return;
         }
 
-        const sharedFlightKey = `${window.location.hash}:${target.id}`;
+        const sharedFlightKey = `${window.location.search}:${target.id}`;
         if (lastHandledSharedFlight === sharedFlightKey) return;
         lastHandledSharedFlight = sharedFlightKey;
-        focusAircraft(target.id, { updateUrl: false });
+        focusAircraft(target.id);
       }
 
       window.addEventListener("hashchange", () => {
