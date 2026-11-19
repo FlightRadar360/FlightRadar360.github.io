@@ -248,6 +248,51 @@
         font-variant-numeric: tabular-nums;
       }
 
+      .staff-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+
+      .staff-section,
+      .staff-notice {
+        border: 1px solid rgba(139, 173, 195, .15);
+        border-radius: 8px;
+        background: rgba(11, 18, 27, .92);
+      }
+
+      .staff-section { padding: 18px; }
+
+      .staff-notice {
+        display: grid;
+        place-items: center;
+        min-height: 220px;
+        padding: 24px;
+        text-align: center;
+      }
+
+      .staff-notice strong { display: block; margin-bottom: 8px; }
+      .staff-notice p { max-width: 460px; margin: 0; color: #9eb0c0; }
+
+      .staff-flight-table-wrap { overflow-x: auto; }
+      .staff-flight-table { width: 100%; border-collapse: collapse; font-size: .76rem; }
+      .staff-flight-table th,
+      .staff-flight-table td { padding: 10px; border-bottom: 1px solid rgba(139, 173, 195, .12); text-align: left; }
+      .staff-flight-table th { color: #91a5ba; font-size: .62rem; text-transform: uppercase; }
+
+      .staff-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+      .staff-tab {
+        min-height: 36px;
+        padding: 0 12px;
+        border: 1px solid rgba(139, 173, 195, .18);
+        border-radius: 7px;
+        color: #dceaf4;
+        background: transparent;
+        cursor: pointer;
+      }
+      .staff-tab[aria-selected="true"] { border-color: rgba(67, 217, 237, .42); background: rgba(67, 217, 237, .12); }
+
       .dashboard-footnote {
         margin: 18px 0 0;
         color: #8499ad;
@@ -1971,6 +2016,7 @@
           </button>
           <div class="account-menu" data-account-menu hidden>
             <button type="button" data-account-dashboard>Dashboard</button>
+            <button type="button" data-account-staff hidden>Staff panel</button>
             <button type="button" data-account-signout>Sign out</button>
           </div>
         </div>
@@ -2194,6 +2240,49 @@
           accumulating after this tracking is enabled; time is counted only while the radar tab is
           visible.
         </p>
+      </main>
+    </div>
+
+    <div id="staff" class="site-page" data-site-page="staff" hidden>
+      <main class="site-main dashboard-main">
+        <header class="dashboard-heading">
+          <div>
+            <p class="site-section-kicker">FlightRadar360 administration</p>
+            <h1>Staff panel</h1>
+            <p data-staff-welcome>Restricted staff tools</p>
+          </div>
+          <a class="site-button site-button-secondary" href="#dashboard">Back to dashboard</a>
+        </header>
+
+        <section class="staff-tabs" aria-label="Staff views">
+          <button class="staff-tab" type="button" data-staff-tab="flights" aria-selected="true">All flights</button>
+          <button class="staff-tab" type="button" data-staff-tab="images" aria-selected="false">Flight images</button>
+        </section>
+
+        <section data-staff-panel="flights">
+          <div class="staff-grid">
+            <article class="staff-section"><span class="dashboard-stat-label">Live GeoFS</span><strong data-staff-geofs-count>0</strong></article>
+            <article class="staff-section"><span class="dashboard-stat-label">Connected</span><strong data-staff-connected-count>0</strong></article>
+            <article class="staff-section"><span class="dashboard-stat-label">Last update</span><strong data-staff-updated>—</strong></article>
+          </div>
+          <section class="staff-section">
+            <div class="staff-flight-table-wrap">
+              <table class="staff-flight-table">
+                <thead><tr><th>Callsign</th><th>Source</th><th>Altitude</th><th>Speed</th><th>Heading</th><th>Position</th><th>Updated</th></tr></thead>
+                <tbody data-staff-flight-rows><tr><td colspan="7">Waiting for live flight data...</td></tr></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section data-staff-panel="images" hidden>
+          <div class="staff-notice">
+            <div>
+              <strong>Flight image approvals are unavailable now.</strong>
+              <p>Approve and reject tools are being built over the next few days. No uploads are being modified or published yet.</p>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
 
@@ -2760,6 +2849,26 @@
         }, 7000);
       }
 
+      const STAFF_DISCORD_ID = "1388554248144293919";
+
+      function getDiscordIdentityId(user) {
+        const metadata = user?.user_metadata ?? {};
+        const appMetadata = user?.app_metadata ?? {};
+        const identities = Array.isArray(user?.identities) ? user.identities : [];
+        const discordIdentity = identities.find(identity => identity.provider === "discord");
+        return String(
+          metadata.provider_id ||
+          appMetadata.provider_id ||
+          discordIdentity?.identity_data?.provider_id ||
+          discordIdentity?.identity_data?.sub ||
+          ""
+        );
+      }
+
+      function isStaffUser(user) {
+        return Boolean(user && !user.is_anonymous && getDiscordIdentityId(user) === STAFF_DISCORD_ID);
+      }
+
       function getAccountDisplayName(user) {
         const metadata = user?.user_metadata ?? {};
         return metadata.full_name || metadata.global_name || metadata.name || metadata.username || metadata.preferred_username || "Discord user";
@@ -2775,9 +2884,11 @@
           const avatar = control.querySelector("[data-account-avatar]");
           const name = control.querySelector("[data-account-name]");
           const menu = control.querySelector("[data-account-menu]");
+          const staffButton = control.querySelector("[data-account-staff]");
           signInButton.hidden = Boolean(user);
           trigger.hidden = !user;
           name.textContent = user ? getAccountDisplayName(user) : "Discord user";
+          if (staffButton) staffButton.hidden = !isStaffUser(user);
           if (user && avatarUrl) {
             avatar.src = avatarUrl;
             avatar.hidden = false;
@@ -2930,6 +3041,17 @@
             accountControl.querySelector("[data-account-trigger]").setAttribute("aria-expanded", "false");
           }
           window.location.hash = "dashboard";
+        });
+        control.querySelector("[data-account-staff]").addEventListener("click", () => {
+          if (!isStaffUser(currentAuthUser)) {
+            showAccountStatus("Staff access is restricted.");
+            return;
+          }
+          for (const accountControl of accountControls) {
+            accountControl.querySelector("[data-account-menu]").hidden = true;
+            accountControl.querySelector("[data-account-trigger]").setAttribute("aria-expanded", "false");
+          }
+          window.location.hash = "staff";
         });
         control.querySelector("[data-account-signout]").addEventListener("click", () => {
           void signOutAccount();
@@ -4215,6 +4337,7 @@
         }
         restoreAircraftFromHash();
         if (!callsignResults.hidden) renderCallsignResults();
+        if (activeSitePage === "staff") renderStaffFlights();
         return snapshotAircraftIds.size;
       }
 
@@ -4311,6 +4434,66 @@
         }
       }
 
+      function setStaffTab(tabName) {
+        document.querySelectorAll("[data-staff-tab]").forEach(tab => {
+          tab.setAttribute("aria-selected", String(tab.dataset.staffTab === tabName));
+        });
+        document.querySelectorAll("[data-staff-panel]").forEach(panel => {
+          panel.hidden = panel.dataset.staffPanel !== tabName;
+        });
+      }
+
+      document.querySelectorAll("[data-staff-tab]").forEach(tab => {
+        tab.addEventListener("click", () => setStaffTab(tab.dataset.staffTab));
+      });
+
+      function formatStaffNumber(value, digits = 0) {
+        return Number.isFinite(value) ? value.toLocaleString(undefined, { maximumFractionDigits: digits }) : "—";
+      }
+
+      function renderStaffFlights() {
+        const rows = document.querySelector("[data-staff-flight-rows]");
+        const geofsCount = document.querySelector("[data-staff-geofs-count]");
+        const connectedCount = document.querySelector("[data-staff-connected-count]");
+        const updated = document.querySelector("[data-staff-updated]");
+        if (!rows || !geofsCount || !connectedCount || !updated) return;
+
+        const aircraft = [...aircraftData.values()].filter(item => item.callsign);
+        geofsCount.textContent = aircraft.length.toLocaleString();
+        connectedCount.textContent = connectedAircraftMarkers.size.toLocaleString();
+        updated.textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+        rows.replaceChildren();
+        if (!aircraft.length) {
+          const row = document.createElement("tr");
+          const cell = document.createElement("td");
+          cell.colSpan = 7;
+          cell.textContent = "No live GeoFS flights are available.";
+          row.append(cell);
+          rows.append(row);
+          return;
+        }
+
+        for (const flight of aircraft.sort((a, b) => a.callsign.localeCompare(b.callsign)).slice(0, 500)) {
+          const row = document.createElement("tr");
+          const values = [
+            flight.callsign,
+            "GeoFS Live",
+            flight.altitudeMeters !== null ? formatAltitude(flight.altitudeMeters) : "—",
+            flight.speedKnots !== null ? formatSpeed(flight.speedKnots) : "—",
+            Number.isFinite(flight.heading) ? `${Math.round(flight.heading) % 360}°` : "—",
+            `${formatStaffNumber(flight.latitude, 4)}, ${formatStaffNumber(flight.longitude, 4)}`,
+            new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+          ];
+          for (const value of values) {
+            const cell = document.createElement("td");
+            cell.textContent = value;
+            row.append(cell);
+          }
+          rows.append(row);
+        }
+      }
+
       function updateSiteRoute() {
         const fragment = window.location.hash.slice(1);
         const normalizedFragment = fragment.toLowerCase();
@@ -4318,6 +4501,8 @@
           ? "docs"
           : normalizedFragment === "dashboard"
             ? "dashboard"
+          : normalizedFragment === "staff"
+            ? "staff"
           : normalizedFragment === "radar" ||
             (normalizedFragment && !["home", "about"].includes(normalizedFragment))
             ? "radar"
@@ -4334,6 +4519,8 @@
           ? "Docs | FlightRadar360"
           : requestedPage === "dashboard"
             ? "Dashboard | FlightRadar360"
+          : requestedPage === "staff"
+            ? "Staff Panel | FlightRadar360"
             : requestedPage === "radar"
               ? "Live Radar | FlightRadar360"
               : "FlightRadar360 | GeoFS Live Radar";
@@ -4360,6 +4547,13 @@
           });
         } else if (requestedPage === "dashboard") {
           void loadMemberDashboard();
+        } else if (requestedPage === "staff") {
+          if (!isStaffUser(currentAuthUser)) {
+            showAccountStatus("Staff access is restricted.");
+            window.location.hash = "home";
+            return;
+          }
+          renderStaffFlights();
         } else {
           if (aircraftRefreshTimeout !== null) {
             window.clearTimeout(aircraftRefreshTimeout);
