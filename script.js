@@ -1,0 +1,1700 @@
+const people = [
+  { slug: "micheal-phelps", name: "Micheal Phelps", note: "Two picks for a quiet watch" },
+  { slug: "micheal-collins", name: "Karaas", note: "A classic cartoon corner" },
+  { slug: "colin-o", name: "Colin O", note: "A full playlist for the room" },
+  { slug: "aidan", name: "Aidan", note: "Music, plus two games to pick up" },
+  { slug: "christian", name: "Christian", note: "A lot of music and a game break" },
+  { slug: "henry", name: "Henry", note: "One game, ready when you are" }
+];
+
+const app = document.querySelector("#app");
+const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+const supabaseConfig = window.studentLoungeSupabaseConfig || {};
+const supabaseClient = window.supabase && supabaseConfig.url && supabaseConfig.anonKey
+  ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey)
+  : null;
+const googleOAuthReturnKey = "student-lounge-google-oauth-return";
+supabaseClient?.auth.onAuthStateChange((event, session) => {
+  setInboxNavigation(session?.user || null);
+  if (event === "SIGNED_OUT" && window.location.hash === "#requests") {
+    window.location.hash = "account";
+    return;
+  }
+  if (event !== "SIGNED_IN" || !session || sessionStorage.getItem(googleOAuthReturnKey) !== "true") return;
+  sessionStorage.removeItem(googleOAuthReturnKey);
+  if (window.location.hash !== "#account") window.location.hash = "account";
+});
+const videoUrl = (id) => `https://www.youtube-nocookie.com/embed/${id}?origin=${encodeURIComponent(window.location.origin)}&rel=0&playsinline=1`;
+const watchUrl = (id) => `https://www.youtube.com/watch?v=${id}`;
+const themeStorageKey = "student-lounge-theme";
+const favoritesStorageKey = "student-lounge-favorites";
+const pointsStorageKey = "student-lounge-points";
+const rewardAdRotationStorageKey = "student-lounge-ad-rotation";
+const dailyPollStorageKey = "student-lounge-daily-poll";
+const unlockedStylesStorageKey = "student-lounge-unlocked-styles";
+const appearanceStorageKey = "student-lounge-appearance";
+const rewardAdVideoIds = ["QVWpiMdiiw4", "KUDhMV0Fpno"];
+const rewardAdReward = 50;
+let rewardAdCloseTimeout;
+const dailyPollReward = 20;
+const pollRewardCooldownMs = 24 * 60 * 60 * 1000;
+const dailyPolls = [
+  { question: "What ice cream flavor are you picking?", choices: ["🍦 Vanilla", "🍫 Chocolate", "🍓 Strawberry", "🍪 Cookies & cream"] },
+  { question: "Choose your perfect day outside.", choices: ["🏖️ Beach day", "🌲 Forest adventure", "🚲 Bike ride", "🧺 Picnic in the park"] },
+  { question: "Which game are you playing first?", choices: ["🏎️ Racing", "🧱 Building", "⚽ Sports", "🗺️ Adventure"] },
+  { question: "Pick a dream snack for movie night.", choices: ["🍿 Popcorn", "🍕 Pizza", "🍬 Candy", "🧀 Nachos"] },
+  { question: "What would you rather do on a sunny afternoon?", choices: ["🛹 Skate around", "🏀 Shoot hoops", "💦 Find a pool", "🐕 Explore with a pet"] },
+  { question: "Choose your ultimate game power-up.", choices: ["⏱️ Slow down time", "🪽 Double jump", "🛡️ Invincibility", "🪙 Unlimited coins"] },
+  { question: "Which sweet treat wins every time?", choices: ["🧁 Cupcakes", "🍩 Donuts", "🍰 Cake", "🍪 Fresh cookies"] },
+  { question: "Pick a mini outdoor adventure.", choices: ["🧭 Go geocaching", "🪁 Fly a kite", "🌅 Watch the sunset", "🪨 Find cool rocks"] },
+  { question: "What kind of game night sounds best?", choices: ["🎮 Video games", "🃏 Card games", "🎲 Board games", "🧩 Puzzles"] },
+  { question: "Build your ideal burger: what’s the must-have?", choices: ["🧀 Extra cheese", "🥓 Crispy bacon", "🥑 Avocado", "🍟 A mountain of fries"] },
+  { question: "Pick a weekend getaway.", choices: ["🏕️ Camping", "🏙️ Big city", "🏝️ Island", "🎢 Theme park"] },
+  { question: "Which fictional pet are you taking home?", choices: ["🐉 Tiny dragon", "🦊 Magical fox", "🐢 Talking turtle", "🐈 Cat with superpowers"] },
+  { question: "Choose your perfect way to cool off.", choices: ["🍧 Shaved ice", "🍉 Cold watermelon", "🏊 A swim", "🧋 Iced boba"] },
+  { question: "You found a free afternoon—what’s the move?", choices: ["🛝 Hang at the park", "🎮 Start a new game", "🛍️ Explore somewhere new", "🛋️ Maximum chill"] }
+];
+const styleOptions = [
+  { id: "sage", label: "Garden", description: "A calm sage-green accent palette.", kind: "palette", value: "sage", cost: 80 },
+  { id: "sunset", label: "Sunset", description: "Warm coral and golden-hour tones.", kind: "palette", value: "sunset", cost: 80 },
+  { id: "lora", label: "Bookish", description: "Lora headings with a relaxed editorial feel.", kind: "typeface", value: "lora", cost: 120 },
+  { id: "nunito", label: "Roundabout", description: "A friendly, rounded Nunito type style.", kind: "typeface", value: "nunito", cost: 120 },
+  { id: "aurora", label: "Aurora", description: "Cool teal and violet tones inspired by northern lights.", kind: "palette", value: "aurora", proOnly: true },
+  { id: "starlight", label: "Starlight", description: "A deep, polished indigo palette with a warm gold accent.", kind: "palette", value: "starlight", proOnly: true }
+];
+const deviceTheme = window.matchMedia("(prefers-color-scheme: dark)");
+const profileStorageKey = "student-lounge-profile";
+const chatStorageKey = "student-lounge-chat-fallback";
+const profileFonts = [
+  { value: "classic", label: "Classic" },
+  { value: "dm-sans", label: "DM Sans" },
+  { value: "lora", label: "Lora" },
+  { value: "nunito", label: "Nunito" },
+  { value: "fraunces", label: "Fraunces" },
+  { value: "manrope", label: "Manrope" }
+];
+const proBannerPresets = [
+  { value: "linear-gradient(135deg, #7ab8ff 0%, #b78cff 45%, #ffd5a8 100%)", label: "Aurora sweep" },
+  { value: "linear-gradient(135deg, #0f172a 0%, #1d4ed8 40%, #7dd3fc 100%)", label: "Night tide" },
+  { value: "linear-gradient(135deg, #f59e0b 0%, #f97316 38%, #fda4af 100%)", label: "Golden hour" },
+  { value: "linear-gradient(135deg, #22c55e 0%, #10b981 35%, #a7f3d0 100%)", label: "Forest glow" },
+  { value: "linear-gradient(135deg, #ec4899 0%, #8b5cf6 48%, #22d3ee 100%)", label: "Velvet dusk" },
+  { value: "linear-gradient(135deg, #111827 0%, #374151 40%, #d97706 100%)", label: "Midnight ink" }
+];
+
+function getAccountRole(email = "") {
+  const normalizedEmail = String(email).trim().toLowerCase();
+  if (["kbotros2027@staschool.us", "karaas.botros2@gmail.com"].includes(normalizedEmail)) return "Developer";
+  if (normalizedEmail === "aluckay2027@staschool.us") return "Helper";
+  return "";
+}
+
+function isDeveloper(user) {
+  return getAccountRole(user?.email) === "Developer";
+}
+
+function isStaff(user) {
+  return Boolean(getAccountRole(user?.email));
+}
+
+function setInboxNavigation(user) {
+  const inboxLink = document.querySelector('[data-nav="requests"]');
+  if (inboxLink) inboxLink.hidden = !isDeveloper(user);
+  const mediaLink = document.querySelector('[data-nav="manage-media"]');
+  if (mediaLink) mediaLink.hidden = !isStaff(user);
+}
+
+function updateRoleTag(target, role) {
+  target?.parentElement?.querySelector("[data-role-tag]")?.remove();
+  if (!target || !role) return;
+
+  const tag = document.createElement("span");
+  tag.className = `role-tag role-tag-${role.toLowerCase()}`;
+  tag.dataset.roleTag = "";
+  tag.textContent = role;
+  target.insertAdjacentElement("afterend", tag);
+}
+
+function getDefaultProfile(user = null) {
+  const baseName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Lounge member";
+  return {
+    username: baseName.trim() || "Lounge member",
+    avatar_url: "",
+    banner_url: "",
+    preferred_font: "classic"
+  };
+}
+
+function getLocalProfile() {
+  try {
+    const profile = JSON.parse(localStorage.getItem(profileStorageKey) || "{}");
+    return { ...getDefaultProfile(), ...profile };
+  } catch {
+    return getDefaultProfile();
+  }
+}
+
+function saveLocalProfile(profile) {
+  localStorage.setItem(profileStorageKey, JSON.stringify(profile));
+}
+
+function getInitialsName(name) {
+  return String(name || "LM").trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("") || "LM";
+}
+
+async function loadCurrentProfile(user = null) {
+  if (!user) return getLocalProfile();
+  if (!supabaseClient) return getLocalProfile();
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("user_profiles")
+      .select("username, avatar_url, banner_url, preferred_font, role")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (error && error.code !== "PGRST116") throw error;
+    if (!data) return getDefaultProfile(user);
+
+    return {
+      username: data.username || getDefaultProfile(user).username,
+      avatar_url: data.avatar_url || "",
+      banner_url: data.banner_url || "",
+      preferred_font: data.preferred_font || "classic",
+      role: getAccountRole(user.email) || data.role || ""
+    };
+  } catch (error) {
+    console.warn("Could not load profile details.", error);
+    return getDefaultProfile(user);
+  }
+}
+
+async function saveCurrentProfile(user, profile) {
+  const safeProfile = {
+    username: String(profile.username || "").trim() || getDefaultProfile(user).username,
+    avatar_url: profile.avatar_url || "",
+    banner_url: profile.banner_url || "",
+    preferred_font: profileFonts.some((font) => font.value === profile.preferred_font) ? profile.preferred_font : "classic"
+  };
+
+  if (!user || !supabaseClient) {
+    saveLocalProfile(safeProfile);
+    return safeProfile;
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from("user_profiles")
+      .upsert({ user_id: user.id, ...safeProfile, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+    if (error) throw error;
+    const { error: metadataError } = await supabaseClient.auth.updateUser({ data: { display_name: safeProfile.username } });
+    if (metadataError) console.warn("Profile saved, but the account display name could not be updated.", metadataError);
+    saveLocalProfile(safeProfile);
+    return safeProfile;
+  } catch (error) {
+    console.warn("Unable to save profile.", error);
+    throw error;
+  }
+}
+
+function applyProfileTheme(profile = getLocalProfile()) {
+  const fontName = profile.preferred_font && profile.preferred_font !== "classic" ? profile.preferred_font : "classic";
+  document.documentElement.dataset.profileFont = fontName;
+  document.body.dataset.profileFont = fontName;
+}
+
+async function uploadProfileImage(file, user) {
+  if (!file || !user || !supabaseClient) return "";
+
+  if (!file.type.startsWith("image/")) throw new Error("Choose an image file.");
+  if (file.size > 5 * 1024 * 1024) throw new Error("Choose an image smaller than 5 MB.");
+
+  const extension = ({
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp",
+    "image/avif": "avif"
+  })[file.type];
+  if (!extension) throw new Error("Use a JPEG, PNG, GIF, WebP, or AVIF image.");
+
+  const objectPath = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+  const { error } = await supabaseClient.storage
+    .from("avatars")
+    .upload(objectPath, file, { upsert: false, cacheControl: "3600", contentType: file.type });
+
+  if (error) throw error;
+
+  const { data } = supabaseClient.storage.from("avatars").getPublicUrl(objectPath);
+  return data?.publicUrl || "";
+}
+
+function bannerBackgroundStyle(value) {
+  if (!value) return "";
+  if (value.startsWith("linear-gradient")) return value;
+  return `url("${value}")`;
+}
+
+async function favoritePlaylistMarkup() {
+  const favoriteKeys = getFavoriteSet();
+  let mediaItems = [];
+  if (supabaseClient) {
+    const { data, error } = await supabaseClient.from("lounge_media")
+      .select("kind, title, embed_url")
+      .eq("is_active", true);
+    if (!error) {
+      mediaItems = (data || []).flatMap((item) => {
+        const id = item.kind === "video" ? getYouTubeVideoId(item.embed_url) : item.embed_url;
+        if (!id) return [];
+        return [{ kind: item.kind, id, label: item.title, url: item.kind === "video" ? watchUrl(id) : item.embed_url }];
+      });
+    }
+  }
+  const entries = mediaItems.filter((item) => favoriteKeys.has(`${item.kind}:${item.id}`));
+
+  if (!entries.length) {
+    return '<div class="feature-empty"><p>No favorites yet. Tap the heart on any video or game to build your lounge playlist.</p></div>';
+  }
+
+  return `<ul class="favorite-list">${entries.map((item) => `<li><div><strong>${escapeHtml(item.label)}</strong><br /><small>${item.kind === "video" ? "Video" : "Game"}</small></div><a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">Open ↗</a></li>`).join("")}</ul>`;
+}
+
+async function renderFavoritePlaylist() {
+  const panel = app.querySelector("[data-favorite-playlist]");
+  if (!panel) return;
+  panel.innerHTML = await favoritePlaylistMarkup();
+}
+
+function chatPage() {
+  return `<section class="page-head"><span class="eyebrow">The lounge</span><h1>Chat.</h1><p>Say hello, swap ideas, or drop a quick update for everyone in the room.</p></section><section class="chat-shell"><div class="chat-panel"><div class="chat-header"><div><span class="eyebrow">Live chat</span><h2>Open room</h2></div><span class="pro-badge">Everyone</span></div><div class="chat-stream" data-chat-stream aria-live="polite"></div><form class="request-form chat-form" data-chat-form><label for="chat-message-input">Your message</label><textarea id="chat-message-input" name="message" maxlength="280" placeholder="Share a quick note with the lounge..." required></textarea><button class="button primary" type="submit">Send message</button><p class="request-form-status" data-chat-status aria-live="polite"></p></form></div></section>`;
+}
+
+function loadPoints() {
+  return Number(localStorage.getItem(pointsStorageKey) || 0);
+}
+
+function savePoints(value) {
+  localStorage.setItem(pointsStorageKey, String(value));
+  const pointsDisplay = document.querySelector("[data-points-total]");
+  if (pointsDisplay) pointsDisplay.textContent = String(value);
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]);
+}
+
+function requestListMarkup(requests) {
+  const entries = requests.map((request) => {
+    const date = new Date(request.created_at);
+    const dateLabel = Number.isNaN(date.getTime()) ? "Saved request" : date.toLocaleString();
+    return `<li class="request-entry"><div><h3>${escapeHtml(request.item)}</h3><p>Requested by ${escapeHtml(request.name)}</p></div><time>${escapeHtml(dateLabel)}</time></li>`;
+  }).join("");
+  const content = entries || '<li class="request-empty">No requests yet. Be the first to suggest something.</li>';
+  return `<section class="request-list-section" data-request-list aria-labelledby="request-list-title"><div class="section-heading"><div><span class="eyebrow">The request box</span><h2 id="request-list-title">All requests <span class="request-count">${requests.length}</span></h2></div><p>Suggestions submitted here appear in this list.</p></div><ul class="request-list">${content}</ul></section>`;
+}
+
+function privateInboxErrorMessage(error) {
+  if (error?.code === "PGRST205" || error?.code === "42P01") {
+    return "Supabase cannot find public.video_requests in this project. Make sure the table is named video_requests in the public schema, then run all of supabase-setup.sql in this same project’s SQL Editor.";
+  }
+  if (error?.code === "42501") {
+    return "Supabase denied this inbox read. Confirm the signed-in account is exactly kbotros2027@staschool.us or karaas.botros2@gmail.com, then run the latest supabase-setup.sql in this project’s SQL Editor.";
+  }
+  if (error?.code === "PGRST204" || error?.code === "42703") {
+    return "The requests table columns do not match the site. It needs id, name, item, and created_at; check the table setup SQL.";
+  }
+  return "Supabase could not load the inbox. Check the table and row-level security policies, then retry.";
+}
+
+function todayKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function todaysPoll() {
+  const [year, month, day] = todayKey().split("-").map(Number);
+  const dayNumber = Math.floor(Date.UTC(year, month - 1, day) / 86400000);
+  return dailyPolls[dayNumber % dailyPolls.length];
+}
+
+function dailyPollRecord() {
+  try {
+    const record = JSON.parse(localStorage.getItem(dailyPollStorageKey) || "null");
+    if (!record || typeof record !== "object") return null;
+
+    if (record.date && !record.answerDate) {
+      const migratedRecord = {
+        answerDate: record.date,
+        choice: record.choice,
+        rewardedAt: Date.now()
+      };
+      localStorage.setItem(dailyPollStorageKey, JSON.stringify(migratedRecord));
+      return migratedRecord;
+    }
+
+    return record;
+  } catch {
+    return null;
+  }
+}
+
+function todaysPollRecord() {
+  const record = dailyPollRecord();
+  return record?.answerDate === todayKey() ? record : null;
+}
+
+function pollRewardCooldownRemaining(record = dailyPollRecord(), now = Date.now()) {
+  if (!Number.isFinite(record?.rewardedAt)) return 0;
+  return Math.max(0, pollRewardCooldownMs - (now - record.rewardedAt));
+}
+
+function pollCooldownLabel(milliseconds) {
+  const totalMinutes = Math.ceil(milliseconds / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return hours ? `${hours}h ${minutes}m` : `${minutes}m`;
+}
+
+function dailyPollMarkup(statusOverride = "") {
+  const poll = todaysPoll();
+  const record = todaysPollRecord();
+  const cooldown = pollRewardCooldownRemaining();
+  const choices = poll.choices.map((choice, index) => {
+    const selected = record?.choice === index;
+    return `<button class="poll-choice ${selected ? "is-selected" : ""}" type="button" data-poll-vote="${index}" aria-pressed="${selected}">${escapeHtml(choice)}</button>`;
+  }).join("");
+  const status = statusOverride || (record
+    ? cooldown
+      ? `Your answer: ${poll.choices[record.choice]}. Change it anytime. Points available again in ${pollCooldownLabel(cooldown)}.`
+      : `Your answer: ${poll.choices[record.choice]}. Change it or choose again to earn ${dailyPollReward} points.`
+    : cooldown
+      ? `Pick an answer or change it anytime. You can earn points again in ${pollCooldownLabel(cooldown)}.`
+      : `Pick an answer and earn ${dailyPollReward} points. You can change your answer anytime.`);
+
+  return `<section class="daily-poll-panel" aria-labelledby="daily-poll-title"><div class="daily-poll-copy"><span class="eyebrow">A little question for today</span><h2 id="daily-poll-title">${poll.question}</h2><p data-poll-status aria-live="polite">${status}</p></div><div class="poll-choices" role="group" aria-label="Poll answers">${choices}</div></section>`;
+}
+
+function mountDailyPoll() {
+  const rewardPanel = app.querySelector(".reward-panel");
+  if (!rewardPanel || app.querySelector(".daily-poll-panel")) return;
+  rewardPanel.insertAdjacentHTML("afterend", dailyPollMarkup());
+}
+
+function handlePollVote(choiceIndex) {
+  const poll = todaysPoll();
+  if (!Number.isInteger(choiceIndex) || choiceIndex < 0 || choiceIndex >= poll.choices.length) return;
+
+  const currentRecord = dailyPollRecord();
+  const now = Date.now();
+  const cooldown = pollRewardCooldownRemaining(currentRecord, now);
+  const earnedReward = cooldown === 0;
+  const record = {
+    answerDate: todayKey(),
+    choice: choiceIndex,
+    rewardedAt: earnedReward ? now : currentRecord?.rewardedAt || null
+  };
+  localStorage.setItem(dailyPollStorageKey, JSON.stringify(record));
+  if (earnedReward) savePoints(loadPoints() + dailyPollReward);
+
+  const status = earnedReward
+    ? `Answer saved! You earned ${dailyPollReward} points. You can change your answer anytime.`
+    : `Answer updated! You can change it anytime. Points available again in ${pollCooldownLabel(cooldown)}.`;
+  const panel = app.querySelector(".daily-poll-panel");
+  if (panel) panel.outerHTML = dailyPollMarkup(status);
+}
+
+function loadUnlockedStyles() {
+  try {
+    const unlocked = JSON.parse(localStorage.getItem(unlockedStylesStorageKey) || "[]");
+    return new Set(Array.isArray(unlocked) ? unlocked : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function loadAppearance() {
+  try {
+    const appearance = JSON.parse(localStorage.getItem(appearanceStorageKey) || "{}");
+    return { palette: appearance.palette || "classic", typeface: appearance.typeface || "classic" };
+  } catch {
+    return { palette: "classic", typeface: "classic" };
+  }
+}
+
+function saveAppearance(appearance) {
+  localStorage.setItem(appearanceStorageKey, JSON.stringify(appearance));
+  applyAppearance();
+}
+
+function applyAppearance() {
+  const appearance = loadAppearance();
+  document.documentElement.dataset.skin = appearance.palette;
+  document.documentElement.dataset.typeface = appearance.typeface;
+}
+
+function customizationMarkup(isPro = false) {
+  const unlocked = loadUnlockedStyles();
+  const appearance = loadAppearance();
+  const points = loadPoints();
+  const options = styleOptions.filter((option) => !option.proOnly || isPro).map((option) => {
+    const isUnlocked = unlocked.has(option.id);
+    const isActive = appearance[option.kind] === option.value;
+    const canAfford = points >= option.cost;
+    const action = option.proOnly || isUnlocked ? "use" : "buy";
+    const buttonText = isActive ? "In use" : option.proOnly || isUnlocked ? "Use style" : canAfford ? `Unlock · ${option.cost} points` : `Need ${option.cost - points} more`;
+    const disabled = isActive || (!option.proOnly && !isUnlocked && !canAfford);
+    return `<article class="style-card style-${option.id}"><span class="style-preview" aria-hidden="true">Aa</span><div class="style-card-copy"><h3>${option.label}</h3><p>${option.description}</p></div><button class="button ${isActive ? "secondary" : "primary"}" type="button" data-style-action="${action}" data-style-id="${option.id}" ${disabled ? "disabled" : ""}>${buttonText}</button></article>`;
+  }).join("");
+  const proSection = isPro
+    ? `<section class="pro-theme-section is-pro-unlocked" data-pro-theme-section aria-labelledby="pro-theme-title"><div class="pro-theme-heading"><span class="pro-badge">StudyBreak Pro</span><h3 id="pro-theme-title">Exclusive palettes</h3></div><div class="pro-theme-grid">${optionsForProThemes(appearance)}</div></section>`
+    : `<section class="pro-theme-section" data-pro-theme-section aria-labelledby="pro-theme-title"><div class="pro-theme-heading"><span class="pro-badge">StudyBreak Pro</span><h3 id="pro-theme-title">Exclusive palettes</h3></div><p class="pro-theme-note">Sign in with an active Pro account to see and use these extra looks.</p><a class="button secondary" href="#account">Check your Pro membership</a></section>`;
+  return `<section class="customization-section" aria-labelledby="customization-title"><div class="section-heading"><div><span class="eyebrow">Spend your points</span><h2 id="customization-title">Personalize your lounge.</h2></div><p>Unlock a look once, then switch between your styles whenever you like. Choices stay on this device.</p></div><div class="style-grid">${options}</div>${proSection}<p class="customization-note">Point-unlocked styles are saved on this browser. Pro palettes require an active account membership.</p></section>`;
+}
+
+function optionsForProThemes(appearance = loadAppearance()) {
+  return styleOptions.filter((option) => option.proOnly).map((option) => {
+    const isActive = appearance[option.kind] === option.value;
+    return `<article class="style-card style-${option.id}"><span class="style-preview" aria-hidden="true">Aa</span><div class="style-card-copy"><h4>${option.label}</h4><p>${option.description}</p></div><button class="button ${isActive ? "secondary" : "primary"}" type="button" data-style-action="use" data-style-id="${option.id}" ${isActive ? "disabled" : ""}>${isActive ? "In use" : "Use style"}</button></article>`;
+  }).join("");
+}
+
+async function checkActiveProMembership() {
+  if (!supabaseClient) return false;
+  try {
+    const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+    const user = sessionData?.session?.user;
+    if (sessionError || !user) return false;
+
+    const { data: entitlement, error } = await supabaseClient
+      .from("pro_entitlements")
+      .select("expires_at")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (error || !entitlement) return false;
+    return !entitlement.expires_at || new Date(entitlement.expires_at) > new Date();
+  } catch (error) {
+    console.warn("Unable to verify Pro theme access.", error);
+    return false;
+  }
+}
+
+function mountCustomizations() {
+  if (app.querySelector(".customization-section")) return;
+  const settingsPanel = app.querySelector(".settings-panel");
+  if (!settingsPanel) return;
+  settingsPanel.insertAdjacentHTML("afterend", customizationMarkup());
+
+  checkActiveProMembership().then((hasPro) => {
+    const section = app.querySelector(".customization-section");
+    if (!hasPro || !section || window.location.hash !== "#settings") return;
+    section.outerHTML = customizationMarkup(true);
+  });
+}
+
+async function handleStyleAction(action, styleId) {
+  const option = styleOptions.find((style) => style.id === styleId);
+  if (!option) return;
+
+  if (option.proOnly && (action !== "use" || !await checkActiveProMembership())) return;
+
+  const unlocked = loadUnlockedStyles();
+  if (option.proOnly) {
+    // Pro palettes are account-entitled and do not cost points.
+  } else if (action === "buy") {
+    if (unlocked.has(option.id) || loadPoints() < option.cost) return;
+    unlocked.add(option.id);
+    localStorage.setItem(unlockedStylesStorageKey, JSON.stringify([...unlocked]));
+    savePoints(loadPoints() - option.cost);
+  } else if (action !== "use" || !unlocked.has(option.id)) {
+    return;
+  }
+
+  const appearance = loadAppearance();
+  appearance[option.kind] = option.value;
+  saveAppearance(appearance);
+  const section = app.querySelector(".customization-section");
+  if (section) section.outerHTML = customizationMarkup(await checkActiveProMembership());
+}
+
+function updateRewardButtonState() {
+  const button = document.querySelector("[data-open-reward]");
+  if (!button) return;
+
+  button.disabled = false;
+  button.textContent = "Watch an ad for +50 points";
+  button.classList.remove("is-disabled");
+}
+
+function nextRewardAdVideoId() {
+  const previousIndex = Number(localStorage.getItem(rewardAdRotationStorageKey) || 0);
+  const nextIndex = Number.isInteger(previousIndex) && previousIndex >= 0 ? previousIndex % rewardAdVideoIds.length : 0;
+  localStorage.setItem(rewardAdRotationStorageKey, String((nextIndex + 1) % rewardAdVideoIds.length));
+  return rewardAdVideoIds[nextIndex];
+}
+
+function closeRewardAd() {
+  clearTimeout(rewardAdCloseTimeout);
+  rewardAdCloseTimeout = undefined;
+
+  const modal = document.querySelector("[data-reward-modal]");
+  const iframe = document.querySelector("[data-reward-iframe]");
+  window.__rewardAdSession = (window.__rewardAdSession || 0) + 1;
+  window.__rewardPlayer?.stopVideo?.();
+  if (iframe) iframe.hidden = true;
+  if (modal) modal.hidden = true;
+  document.body.classList.remove("is-ad-lock");
+}
+
+function loadRewardYouTubeApi() {
+  if (window.YT?.Player) return Promise.resolve(window.YT);
+  if (window.__rewardYouTubeApiPromise) return window.__rewardYouTubeApiPromise;
+
+  window.__rewardYouTubeApiPromise = new Promise((resolve, reject) => {
+    const previousCallback = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      previousCallback?.();
+      resolve(window.YT);
+    };
+
+    const script = document.createElement("script");
+    script.src = "https://www.youtube.com/iframe_api";
+    script.onerror = () => reject(new Error("YouTube player API failed to load."));
+    document.head.append(script);
+  });
+
+  return window.__rewardYouTubeApiPromise;
+}
+
+function ensureRewardPlayer() {
+  if (window.__rewardPlayer) return Promise.resolve(window.__rewardPlayer);
+  if (window.__rewardPlayerPromise) return window.__rewardPlayerPromise;
+
+  window.__rewardPlayerPromise = loadRewardYouTubeApi().then((youtube) => new Promise((resolve) => {
+    const iframe = document.querySelector("[data-reward-iframe]");
+    if (!iframe) throw new Error("Reward video frame not found.");
+
+    window.__rewardPlayer = new youtube.Player(iframe, {
+      events: {
+        onReady: (event) => resolve(event.target),
+        onStateChange: (event) => {
+          if (event.data === youtube.PlayerState.ENDED) finishRewardAd();
+        },
+        onError: () => {
+          const status = document.querySelector("[data-reward-status]");
+          if (status) status.textContent = "The ad could not be played. Please try again.";
+        }
+      }
+    });
+  }));
+
+  return window.__rewardPlayerPromise;
+}
+
+function openRewardAd() {
+  window.__rewardAdAwarded = false;
+  const selectedVideoId = nextRewardAdVideoId();
+  window.__activeRewardAdVideoId = selectedVideoId;
+  const session = (window.__rewardAdSession || 0) + 1;
+  window.__rewardAdSession = session;
+
+  const modal = document.querySelector("[data-reward-modal]");
+  const iframe = document.querySelector("[data-reward-iframe]");
+  const closeButton = document.querySelector("[data-close-reward]");
+  if (!modal || !iframe) return;
+
+  clearTimeout(rewardAdCloseTimeout);
+  iframe.hidden = false;
+  if (!window.__rewardPlayer && !window.__rewardPlayerPromise) {
+    iframe.src = `https://www.youtube-nocookie.com/embed/${selectedVideoId}?enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}&autoplay=0&controls=0&disablekb=1&fs=0&rel=0&playsinline=1`;
+  }
+  iframe.allow = "autoplay; encrypted-media; picture-in-picture";
+  if (closeButton) closeButton.disabled = false;
+  modal.hidden = false;
+  document.body.classList.add("is-ad-lock");
+  const status = document.querySelector("[data-reward-status]");
+  if (status) status.textContent = "Finish the video to claim your reward.";
+
+  ensureRewardPlayer().then((player) => {
+    if (window.__rewardAdSession !== session || modal.hidden) return;
+    player.loadVideoById(selectedVideoId);
+  }).catch(() => {
+    if (window.__rewardAdSession !== session || modal.hidden) return;
+    if (status) status.textContent = "The ad player could not load. Please try again.";
+  });
+}
+
+function finishRewardAd() {
+  if (window.__rewardAdAwarded) return;
+
+  const modal = document.querySelector("[data-reward-modal]");
+  const iframe = document.querySelector("[data-reward-iframe]");
+  const closeButton = document.querySelector("[data-close-reward]");
+  if (!modal || !iframe || modal.hidden) return;
+
+  window.__rewardAdAwarded = true;
+  const nextPoints = loadPoints() + rewardAdReward;
+  savePoints(nextPoints);
+  iframe.hidden = true;
+  if (closeButton) closeButton.disabled = false;
+  updateRewardButtonState();
+  const status = document.querySelector("[data-reward-status]");
+  if (status) status.textContent = "Ad complete! Click the × to close. This will close automatically in 5 seconds.";
+
+  clearTimeout(rewardAdCloseTimeout);
+  rewardAdCloseTimeout = setTimeout(closeRewardAd, 5000);
+}
+
+function attachRewardListeners() {
+  if (window.__rewardListenersBound) return;
+
+  document.addEventListener("click", (event) => {
+    const trigger = event.target.closest("[data-open-reward]");
+    if (trigger && !trigger.disabled) {
+      openRewardAd();
+      return;
+    }
+
+    const closeButton = event.target.closest("[data-close-reward]");
+    if (closeButton && !closeButton.disabled) {
+      closeRewardAd();
+    }
+  });
+
+  window.__rewardListenersBound = true;
+}
+
+function attachEconomyListeners() {
+  if (window.__economyListenersBound) return;
+
+  document.addEventListener("click", (event) => {
+    const pollButton = event.target.closest("[data-poll-vote]");
+    if (pollButton && !pollButton.disabled) {
+      handlePollVote(Number(pollButton.dataset.pollVote));
+      return;
+    }
+
+    const styleButton = event.target.closest("[data-style-action]");
+    if (styleButton && !styleButton.disabled) {
+      handleStyleAction(styleButton.dataset.styleAction, styleButton.dataset.styleId);
+    }
+  });
+
+  window.__economyListenersBound = true;
+}
+
+function applyTheme(theme) {
+  const activeTheme = theme === "auto" ? (deviceTheme.matches ? "dark" : "light") : theme;
+  document.documentElement.dataset.theme = activeTheme;
+  themeColorMeta?.setAttribute("content", activeTheme === "dark" ? "#111315" : "#f4f1eb");
+}
+
+function savedTheme() {
+  return localStorage.getItem(themeStorageKey) || "auto";
+}
+
+applyTheme(savedTheme());
+applyAppearance();
+deviceTheme.addEventListener?.("change", () => {
+  if (savedTheme() === "auto") applyTheme("auto");
+});
+
+function getFavoriteSet() {
+  try {
+    const favorites = JSON.parse(localStorage.getItem(favoritesStorageKey) || "[]");
+    return new Set(Array.isArray(favorites) ? favorites : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function setFavoriteSet(set) {
+  localStorage.setItem(favoritesStorageKey, JSON.stringify([...set]));
+}
+
+function favoriteButtonMarkup(kind, id, label) {
+  const key = `${kind}:${id}`;
+  const favorited = getFavoriteSet().has(key);
+  return `<button class="favorite-button ${favorited ? "is-favorited" : ""}" type="button" data-favorite-toggle data-favorite-kind="${escapeHtml(kind)}" data-favorite-id="${escapeHtml(id)}" data-favorite-label="${escapeHtml(label)}" aria-label="${favorited ? "Remove from favorites" : "Add to favorites"}: ${escapeHtml(label)}" title="${favorited ? "Remove from favorites" : "Add to favorites"}">${favorited ? "♥" : "♡"}</button>`;
+}
+
+function recentTagMarkup(recentlyAdded) {
+  return recentlyAdded ? '<span class="card-tag is-recent">Recently added</span>' : "";
+}
+
+function mediaCard(title, id, index, { recentlyAdded = false } = {}) {
+  const safeTitle = escapeHtml(title);
+  return `<article class="media-card video-card"><div class="media-top-row">${recentTagMarkup(recentlyAdded)}${favoriteButtonMarkup("video", id, title)}</div><div class="media-frame video-frame"><iframe src="${videoUrl(id)}" title="${safeTitle}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="origin-when-cross-origin" allowfullscreen></iframe></div><div class="media-info"><small>Video ${String(index + 1).padStart(2, "0")}</small><h3>${safeTitle}</h3><a class="video-watch-link" href="${watchUrl(id)}" target="_blank" rel="noopener noreferrer">Watch on YouTube <span aria-hidden="true">↗</span></a></div></article>`;
+}
+
+function gameCard([title, url], index, { recentlyAdded = false } = {}) {
+  const safeTitle = escapeHtml(title);
+  const safeUrl = escapeHtml(url);
+  return `<article class="media-card game-card"><div class="media-top-row">${recentTagMarkup(recentlyAdded)}${favoriteButtonMarkup("game", url, title)}</div><div class="media-frame"><iframe src="${safeUrl}" title="${safeTitle}" loading="lazy" allow="fullscreen; gamepad" allowfullscreen></iframe><button class="fullscreen-button" type="button" data-fullscreen title="Open ${safeTitle} fullscreen" aria-label="Open ${safeTitle} fullscreen"><span aria-hidden="true">⛶</span><span>Full screen</span></button></div><div class="media-info"><small>Game ${String(index + 1).padStart(2, "0")}</small><h3>${safeTitle}</h3><a class="game-launch-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">Open in new tab <span aria-hidden="true">↗</span></a></div></article>`;
+}
+
+document.addEventListener("fullscreenchange", () => {
+  document.querySelectorAll("[data-fullscreen]").forEach((button) => {
+    const isActive = button.closest(".media-frame") === document.fullscreenElement;
+    button.classList.toggle("is-active", isActive);
+    button.querySelector("span:last-child").textContent = isActive ? "Exit full screen" : "Full screen";
+    button.setAttribute("aria-label", isActive ? "Exit full screen" : button.title);
+  });
+});
+
+function homePage() {
+  return `<section class="hero"><div class="hero-copy"><span class="eyebrow">Take a breather. Find your people.</span><h1>Your school-time<br /><em>media hub.</em></h1><p>A low-pressure place for the people, videos, and games that make a school day feel a little lighter.</p><div class="hero-actions"><a class="button primary" href="#people">Browse people <span>↗</span></a><a class="button secondary" href="#request">Request a video</a></div></div><div class="hero-art"><img src="studybreak-logo.jpeg" alt="StudyBreak — your school-time media hub" draggable="false" title="Drag to move the logo" /><span class="sticker">always open</span></div></section><section class="reward-panel"><div class="reward-copy"><span class="eyebrow">StudyBreak reward</span><h2>Watch an ad, earn 50 points.</h2><p>Choose from two ads with the same button. Watch either one as many times as you like; every completed ad earns 50 points.</p></div><button class="button primary" type="button" data-open-reward>Watch an ad for +50 points</button></section><div class="reward-ad-modal" data-reward-modal hidden aria-live="polite"><div class="reward-ad-dialog" role="dialog" aria-modal="true" aria-label="Reward ad"><div class="reward-ad-header"><span class="eyebrow">Reward ad</span><button type="button" class="reward-ad-close" data-close-reward aria-label="Close reward ad" disabled>✕</button></div><iframe data-reward-iframe title="Reward ad" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><p class="reward-ad-status" data-reward-status>Finish the video to claim your reward.</p></div></div>`;
+}
+
+function peopleDirectoryPage() {
+  const cards = people.map((person, index) => `<a class="person-card" href="#${person.slug}"><span class="person-number">${String(index + 1).padStart(2, "0")}</span><div><h3>${person.name}</h3><p>${person.note}</p></div><span class="arrow">↗</span></a>`).join("");
+  return `<section class="page-head"><span class="eyebrow">The room list</span><h1>Find your people.</h1><p>Choose a corner and settle in.</p></section><section class="people-directory"><div class="people-grid">${cards}</div></section>`;
+}
+
+function personPage(person, items = []) {
+  const videos = items.filter((item) => item.kind === "video");
+  const games = items.filter((item) => item.kind === "game");
+  const media = videos.map((item, index) => mediaCard(item.title, getYouTubeVideoId(item.embed_url), index)).join("");
+  const gameCards = games.map((item, index) => gameCard([item.title, item.embed_url], index)).join("");
+  return `<section class="page-head"><span class="eyebrow">A corner for</span><h1>${escapeHtml(person.name)}</h1><p>${escapeHtml(person.note)}. Take your time, turn the volume down, and make yourself comfortable.</p></section>${videos.length ? `<section><div class="section-heading"><h2>Watch list</h2><p>Hand-picked for this corner of the lounge.</p></div><div class="media-grid">${media}</div></section>` : ""}${games.length ? `<section><div class="section-heading"><h2>Play room</h2><p>Open a game right here and keep your place in the lounge.</p></div><div class="media-grid">${gameCards}</div></section>` : ""}${!items.length ? '<p class="empty-note">This page is ready for videos and games.</p>' : ""}`;
+}
+
+function getYouTubeVideoId(value) {
+  try {
+    const url = new URL(value);
+    const pathMatch = url.pathname.match(/\/(?:embed|shorts|live)\/([\w-]+)/);
+    const id = pathMatch?.[1] || (url.hostname.endsWith("youtu.be") ? url.pathname.slice(1).split("/")[0] : url.searchParams.get("v"));
+    return /^[\w-]{6,20}$/.test(id || "") ? id : "";
+  } catch {
+    return "";
+  }
+}
+
+async function loadPublishedPageMedia(personSlug) {
+  if (!supabaseClient) return [];
+  const { data, error } = await supabaseClient
+    .from("lounge_media")
+    .select("id, person_slug, kind, title, embed_url, is_active")
+    .eq("person_slug", personSlug)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true });
+  if (error) {
+    console.error("Could not load page media.", error);
+    return [];
+  }
+  return data || [];
+}
+
+function mediaManagerPage() {
+  const options = people.map((person) => `<option value="${person.slug}">${escapeHtml(person.name)}’s page</option>`).join("");
+  return `<section class="page-head"><span class="eyebrow">Helper &amp; Developer tools</span><h1>Manage pages.</h1><p>Choose a person’s page to review its videos and games. Add an embed and it will appear on that page for everyone.</p></section><section class="media-manager-panel"><div class="media-manager-toolbar"><label for="media-person-select">Everyone’s pages</label><select id="media-person-select" data-media-person>${options}</select><button class="button primary" type="button" data-media-add-open>+ Add new</button></div><p class="request-form-status" data-media-manager-status aria-live="polite">Loading page content…</p><div data-media-manager-list></div><form class="request-form media-add-form" data-media-add-form hidden><h2>Add to this page</h2><label for="media-title">Video or game name</label><input id="media-title" name="title" type="text" maxlength="120" required placeholder="e.g. My favorite video" /><label for="media-embed">Video or game embed code</label><textarea id="media-embed" name="embed" maxlength="4000" required placeholder="Paste a YouTube iframe or a game iframe embed code"></textarea><p class="media-form-hint">YouTube embeds are detected as videos. Other secure iframe embeds are added as games.</p><button class="button primary" type="submit">Add to page</button><button class="button secondary" type="button" data-media-add-cancel>Cancel</button><p class="request-form-status" data-media-add-status aria-live="polite"></p></form></section>`;
+}
+
+function mediaManagerListMarkup(items) {
+  if (!items.length) return '<p class="request-empty">No videos or games are saved on this page yet.</p>';
+  return `<ul class="media-manager-list">${items.map((item) => `<li class="media-manager-entry ${item.is_active ? "" : "is-inactive"}"><div><span class="eyebrow">${item.kind === "video" ? "Video" : "Game"}${item.is_active ? "" : " · Removed"}</span><h3>${escapeHtml(item.title)}</h3><a href="${escapeHtml(item.embed_url)}" target="_blank" rel="noopener noreferrer">Preview embed ↗</a></div><button class="button secondary" type="button" data-media-toggle="${item.is_active ? "remove" : "restore"}" data-media-id="${escapeHtml(item.id)}">${item.is_active ? "Remove" : "Restore"}</button></li>`).join("")}</ul>`;
+}
+
+function parseMediaEmbed(embedCode) {
+  const trimmed = embedCode.trim();
+  let source = trimmed;
+  if (trimmed.includes("<")) {
+    const documentCopy = new DOMParser().parseFromString(trimmed, "text/html");
+    source = documentCopy.querySelector("iframe")?.getAttribute("src") || "";
+  }
+  if (!source) throw new Error("Paste a valid iframe embed code or HTTPS embed URL.");
+  let url;
+  try {
+    url = new URL(source, window.location.href);
+  } catch {
+    throw new Error("The embed code needs a valid source URL.");
+  }
+  if (url.protocol !== "https:" || url.username || url.password) throw new Error("Use an HTTPS embed source.");
+
+  const isYouTube = ["youtube.com", "www.youtube.com", "youtube-nocookie.com", "www.youtube-nocookie.com", "youtu.be", "www.youtu.be"].includes(url.hostname.toLowerCase());
+  if (isYouTube) {
+    const videoId = getYouTubeVideoId(url.href);
+    if (!videoId) throw new Error("That looks like a YouTube embed, but its video ID could not be found.");
+    return { kind: "video", embed_url: `https://www.youtube-nocookie.com/embed/${videoId}` };
+  }
+  return { kind: "game", embed_url: url.href };
+}
+
+async function refreshMediaManager() {
+  const status = app.querySelector("[data-media-manager-status]");
+  const list = app.querySelector("[data-media-manager-list]");
+  const selector = app.querySelector("[data-media-person]");
+  if (!status || !list || !selector) return;
+  const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+  const user = sessionData?.session?.user;
+  if (sessionError || !isStaff(user)) {
+    window.location.hash = user ? "home" : "account";
+    return;
+  }
+  const { data, error } = await supabaseClient.from("lounge_media")
+    .select("id, person_slug, kind, title, embed_url, is_active")
+    .eq("person_slug", selector.value)
+    .order("created_at", { ascending: true });
+  if (error) {
+    console.error("Could not load managed page content.", error);
+    status.textContent = "Page content is not connected yet. Run the updated supabase-setup.sql in your Supabase project, then reload.";
+    list.innerHTML = "";
+    return;
+  }
+  status.textContent = "Changes here are visible on the selected person’s page.";
+  list.innerHTML = mediaManagerListMarkup(data || []);
+  list.querySelectorAll("[data-media-toggle]").forEach((button) => button.addEventListener("click", async () => {
+    button.disabled = true;
+    const nextActive = button.dataset.mediaToggle === "restore";
+    const { error: updateError } = await supabaseClient.from("lounge_media")
+      .update({ is_active: nextActive })
+      .eq("id", button.dataset.mediaId);
+    if (updateError) {
+      console.error("Could not update page content.", updateError);
+      status.textContent = "Could not update this item. Check the lounge_media policies in Supabase and try again.";
+      button.disabled = false;
+      return;
+    }
+    await refreshMediaManager();
+  }));
+}
+
+function wireMediaManagerControls() {
+  const selector = app.querySelector("[data-media-person]");
+  const form = app.querySelector("[data-media-add-form]");
+  const openButton = app.querySelector("[data-media-add-open]");
+  const cancelButton = app.querySelector("[data-media-add-cancel]");
+  selector?.addEventListener("change", refreshMediaManager);
+  openButton?.addEventListener("click", () => { form.hidden = false; form.elements.namedItem("title").focus(); });
+  cancelButton?.addEventListener("click", () => { form.reset(); form.hidden = true; });
+  form?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const status = form.querySelector("[data-media-add-status]");
+    const submit = form.querySelector('[type="submit"]');
+    const title = form.elements.namedItem("title").value.trim();
+    try {
+      const parsedEmbed = parseMediaEmbed(form.elements.namedItem("embed").value);
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const user = sessionData?.session?.user;
+      if (!isStaff(user)) throw new Error("Only Helpers and Developers can add page content.");
+      submit.disabled = true;
+      status.textContent = `Adding as a ${parsedEmbed.kind}…`;
+      const { error } = await supabaseClient.from("lounge_media").insert({
+        person_slug: selector.value,
+        kind: parsedEmbed.kind,
+        title,
+        embed_url: parsedEmbed.embed_url,
+        created_by: user.id
+      });
+      if (error) throw error;
+      form.reset();
+      form.hidden = true;
+      status.textContent = "Added. This embed is now on the selected page.";
+      await refreshMediaManager();
+    } catch (error) {
+      console.error("Could not add page content.", error);
+      status.textContent = error.message || "Could not add this embed. Check the Supabase setup and try again.";
+    } finally {
+      submit.disabled = false;
+    }
+  });
+}
+
+function hanyPage() {
+  return `<section class="page-head"><span class="eyebrow">A little appreciation</span><h1>Hany is my dad.</h1><p>He loves me, supports me, and is always there when I need him. He makes life brighter with his kindness, advice, and sense of humor.</p></section><section class="request-note"><h2>Thanks for being you, Dad.</h2><p>I’m lucky to have you in my corner. Love you!</p><a class="button primary" href="#home">Back to the lounge <span aria-hidden="true">↗</span></a></section>`;
+}
+
+function requestsPage() {
+  return `<section class="page-head"><span class="eyebrow">Keep the lounge growing</span><h1>Request a video or game.</h1><p>Send a suggestion for the lounge. Your name and suggestion are only visible in the private inbox to authorized Developer accounts.</p></section><section class="request-layout"><div class="form-card"><form class="request-form" data-request-form><label for="request-name">#1 Whats your name?</label><input id="request-name" name="name" type="text" autocomplete="name" maxlength="80" required /><label for="request-item">#2 What is the video or game name you want?</label><input id="request-item" name="item" type="text" maxlength="160" required /><button class="button primary" type="submit">Send request <span aria-hidden="true">↗</span></button><p class="request-form-status" data-request-status aria-live="polite"></p></form></div><aside class="request-note"><span class="eyebrow">A note about requests</span><h2>Help grow the lounge.</h2><p>Submissions are sent to a private inbox that only the two authorized Developer accounts can view.</p></aside></section>`;
+}
+
+function privateRequestsPage() {
+  return `<section class="page-head"><span class="eyebrow">Developer access</span><h1>Private requests.</h1><p>Only authorized Developer accounts can view this inbox.</p></section><section class="admin-requests-panel"><p class="request-form-status admin-status" data-admin-status aria-live="polite">Checking access…</p><div data-admin-results hidden></div></section>`;
+}
+
+async function refreshPrivateRequests() {
+  const status = app.querySelector("[data-admin-status]");
+  const results = app.querySelector("[data-admin-results]");
+  if (!status || !results) return;
+
+  if (!supabaseClient) {
+    status.textContent = "The private inbox needs Supabase project settings. See the setup steps in README.md.";
+    return;
+  }
+
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) {
+    window.location.hash = "account";
+    return;
+  }
+
+  const session = data.session;
+  if (!session || !isDeveloper(session.user)) {
+    window.location.hash = session ? "home" : "account";
+    return;
+  }
+
+  status.textContent = "Developer account verified. The private inbox is ready.";
+  const { data: requests, error: requestError } = await supabaseClient
+    .from("video_requests")
+    .select("id, name, item, created_at")
+    .order("created_at", { ascending: false });
+  if (requestError) {
+    console.error("Could not load private video requests.", requestError);
+    results.hidden = false;
+    results.innerHTML = `<p class="request-form-status">${privateInboxErrorMessage(requestError)}</p><button class="button secondary admin-retry" type="button" data-admin-retry>Try again</button>`;
+    results.querySelector("[data-admin-retry]")?.addEventListener("click", refreshPrivateRequests);
+    return;
+  }
+
+  results.hidden = false;
+  results.innerHTML = `<button class="button secondary admin-sign-out" type="button" data-admin-sign-out>Sign out</button>${requestListMarkup(requests || [])}`;
+  results.querySelector("[data-admin-sign-out]")?.addEventListener("click", async () => {
+    const { error: signOutError } = await supabaseClient.auth.signOut();
+    if (signOutError) {
+      status.textContent = "Could not sign out. Please try again.";
+      return;
+    }
+    window.location.hash = "account";
+  });
+}
+
+function settingsPage() {
+  return `<section class="page-head"><span class="eyebrow">Make it yours</span><h1>Settings.</h1><p>Choose the atmosphere that feels right. Your choice stays with you on this device.</p></section><section class="settings-panel"><div><span class="eyebrow">Appearance</span><h2>Color mode</h2><p>Device mode follows your computer or phone preference automatically.</p></div><div class="theme-control"><span>Theme</span><div class="theme-options" role="group" aria-label="Color mode"><button type="button" class="theme-option" data-theme-option="auto"><strong>Device</strong><small>Follow device</small></button><button type="button" class="theme-option" data-theme-option="light"><strong>Light</strong><small>Soft paper</small></button><button type="button" class="theme-option" data-theme-option="dark"><strong>Dark</strong><small>Low light</small></button></div></div></section>`;
+}
+
+function accountPage() {
+  return `<section class="page-head"><span class="eyebrow">Your lounge account</span><h1>Keep your place.</h1><p>Create an account or sign in. Your Pro status will be stored with your account, so it follows you when you sign in on another device.</p></section><section class="account-panel" aria-label="Account management"><div data-account-guest><form class="request-form" data-account-sign-in><h2>Welcome back.</h2><label for="account-signin-email">Email</label><input id="account-signin-email" name="email" type="email" autocomplete="username" required /><label for="account-signin-password">Password</label><input id="account-signin-password" name="password" type="password" autocomplete="current-password" required /><button class="button primary" type="submit">Sign in</button><button class="button secondary google-sign-in" type="button" data-google-sign-in><span class="google-mark" aria-hidden="true">G</span> Continue with Google</button><p class="account-switch">New here? <button type="button" data-account-show-sign-up>Create an account</button></p></form><form class="request-form" data-account-sign-up hidden><h2>Make your account.</h2><label for="account-display-name">Your name</label><input id="account-display-name" name="displayName" type="text" autocomplete="name" maxlength="80" required /><label for="account-signup-email">Email</label><input id="account-signup-email" name="email" type="email" autocomplete="email" required /><label for="account-signup-password">Create a password</label><input id="account-signup-password" name="password" type="password" autocomplete="new-password" minlength="8" required /><button class="button primary" type="submit">Create account</button><button class="button secondary google-sign-in" type="button" data-google-sign-in><span class="google-mark" aria-hidden="true">G</span> Sign up with Google</button><p class="account-switch">Already have an account? <button type="button" data-account-show-sign-in>Sign in</button></p></form></div><div data-account-member hidden><div class="account-identity"><div><span class="eyebrow">Signed in as</span><h2 data-account-name>Your account</h2><p class="account-email" data-account-email></p></div><button class="button secondary" type="button" data-account-sign-out>Sign out</button></div><div class="pro-status-card" data-pro-status-card><span class="pro-badge" data-pro-badge>Checking Pro</span><p data-pro-status>Checking your membership…</p></div></div><p class="account-message" data-account-message aria-live="polite">${supabaseClient ? "" : "Account sign-in isn't connected yet. Please try again later."}</p></section>`;
+}
+
+async function refreshAccountPage() {
+  const guestPanel = app.querySelector("[data-account-guest]");
+  const memberPanel = app.querySelector("[data-account-member]");
+  const message = app.querySelector("[data-account-message]");
+  if (!guestPanel || !memberPanel || !message) return;
+
+  if (!supabaseClient) {
+    message.textContent = "Account sign-in isn't connected. Check the Supabase settings and refresh.";
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    const user = data.session?.user;
+    guestPanel.hidden = Boolean(user);
+    memberPanel.hidden = !user;
+    if (!user) return;
+
+    const profile = await loadCurrentProfile(user);
+    const badge = app.querySelector("[data-pro-badge]");
+    const proStatus = app.querySelector("[data-pro-status]");
+    const proCard = app.querySelector("[data-pro-status-card]");
+    const profileBanner = app.querySelector("[data-profile-banner]");
+    const profileAvatar = app.querySelector("[data-profile-avatar]");
+    const usernameField = app.querySelector("[data-profile-username]");
+    const avatarField = app.querySelector("[data-profile-avatar-url]");
+    const bannerField = app.querySelector("[data-profile-banner-url]");
+    const fontField = app.querySelector("[data-profile-font]");
+    const proProfileControls = app.querySelector("[data-pro-profile-tools]");
+
+    app.querySelector("[data-account-email]").textContent = user.email || "";
+    app.querySelector("[data-account-name]").textContent = profile.username || "Lounge member";
+    const accountRole = getAccountRole(user.email);
+    app.querySelectorAll("[data-account-name]").forEach((name) => updateRoleTag(name, accountRole));
+    const initials = getInitialsName(profile.username || user.email || "Lounge member");
+    if (profileAvatar) {
+      profileAvatar.innerHTML = profile.avatar_url ? `<img src="${profile.avatar_url}" alt="${escapeHtml(profile.username || "Profile picture")}" />` : `<span>${escapeHtml(initials)}</span>`;
+    }
+    if (usernameField) usernameField.value = profile.username || "";
+    if (avatarField) avatarField.value = profile.avatar_url || "";
+    if (bannerField) bannerField.value = profile.banner_url || "";
+    if (fontField) fontField.value = profile.preferred_font || "classic";
+    if (profileBanner) {
+      profileBanner.hidden = !profile.banner_url;
+      profileBanner.style.backgroundImage = profile.banner_url ? `url("${profile.banner_url}")` : "";
+    }
+    if (proProfileControls) {
+      const hasPro = await checkActiveProMembership();
+      proProfileControls.hidden = !hasPro;
+      if (!hasPro) {
+        bannerField.disabled = true;
+        fontField.disabled = true;
+      } else {
+        bannerField.disabled = false;
+        fontField.disabled = false;
+      }
+    }
+
+    const { data: entitlement, error: entitlementError } = await supabaseClient
+      .from("pro_entitlements")
+      .select("expires_at")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (entitlementError) {
+      console.error("Could not read account Pro status.", entitlementError);
+      badge.textContent = "Pro status unavailable";
+      proStatus.textContent = "Run the account and Pro setup in supabase-setup.sql, then reload this page.";
+      return;
+    }
+
+    const expiry = entitlement?.expires_at ? new Date(entitlement.expires_at) : null;
+    const hasPro = Boolean(entitlement && (!expiry || expiry > new Date()));
+    badge.textContent = hasPro ? "Pro member" : "Lounge member";
+    proCard.classList.toggle("is-pro", hasPro);
+    proStatus.textContent = hasPro
+      ? expiry ? `Pro is active until ${expiry.toLocaleDateString()}. It is linked to this account.` : "Pro is active on this account. Sign in with this account on another device to keep your membership."
+      : "No Pro membership is linked to this account yet. When the helper program opens, Pro access can be granted to this account.";
+
+    applyProfileTheme(profile);
+
+    const profileEditor = memberPanel.querySelector("[data-profile-editor]");
+    if (!profileEditor) {
+      memberPanel.insertAdjacentHTML("beforeend", `<div class="profile-editor" data-profile-editor><div class="profile-banner" data-profile-banner hidden></div><div class="account-identity"><div class="account-avatar" data-profile-avatar></div><div><span class="eyebrow">Profile</span><h2 data-account-name>${escapeHtml(profile.username || "Lounge member")}</h2><p class="account-email" data-account-email>${escapeHtml(user.email || "")}</p></div><span class="pro-badge" data-pro-badge>Loading…</span></div><div class="pro-status-card" data-pro-status-card><p><strong>Pro status</strong></p><p data-pro-status>Checking your membership…</p></div><form class="request-form" data-profile-form><label for="profile-username">Username</label><input id="profile-username" data-profile-username name="username" type="text" maxlength="30" required /><label for="profile-avatar-url">Profile picture URL</label><input id="profile-avatar-url" data-profile-avatar-url name="avatarUrl" type="url" placeholder="https://..." /><label for="profile-avatar-file">Upload avatar image</label><input id="profile-avatar-file" data-profile-avatar-file name="avatarFile" type="file" accept="image/*" /><div data-pro-profile-tools hidden><label for="profile-banner-preset">Banner preset</label><select id="profile-banner-preset" data-profile-banner-preset name="bannerPreset">${proBannerPresets.map((preset) => `<option value="${preset.value}">${preset.label}</option>`).join("")}</select><label for="profile-banner-url">Or use a custom banner URL</label><input id="profile-banner-url" data-profile-banner-url name="bannerUrl" type="url" placeholder="https://..." /><label for="profile-banner-file">Or upload a banner image</label><input id="profile-banner-file" data-profile-banner-file name="bannerFile" type="file" accept="image/*" /><p class="profile-upload-hint">Upload a JPEG, PNG, GIF, WebP, or AVIF image up to 5 MB.</p><label for="profile-font">Custom font</label><select id="profile-font" data-profile-font name="preferredFont">${profileFonts.map((font) => `<option value="${font.value}">${font.label}</option>`).join("")}</select></div><button class="button primary" type="submit">Save profile</button><p class="account-message" data-profile-message aria-live="polite"></p></form><div class="feature-section"><div class="feature-header"><span class="eyebrow">Your favorites</span><h2>Playlist</h2></div><div data-favorite-playlist></div></div><button class="button secondary" type="button" data-open-chat>Open chat</button><button class="button secondary" type="button" data-account-sign-out>Sign out</button></div>`);
+    }
+
+    const editor = memberPanel.querySelector("[data-profile-editor]");
+    editor?.querySelector("[data-pro-badge]")?.remove();
+    editor?.querySelector("[data-pro-status-card]")?.remove();
+    editor?.querySelector("[data-open-chat]")?.remove();
+    editor?.querySelector("[data-account-sign-out]")?.remove();
+
+    memberPanel.querySelectorAll("[data-account-name]").forEach((name) => updateRoleTag(name, accountRole));
+
+    const memberProfileBanner = memberPanel.querySelector("[data-profile-banner]");
+    const memberProfileAvatar = memberPanel.querySelector("[data-profile-avatar]");
+    const memberUsernameField = memberPanel.querySelector("[data-profile-username]");
+    const memberAvatarField = memberPanel.querySelector("[data-profile-avatar-url]");
+    const memberBannerField = memberPanel.querySelector("[data-profile-banner-url]");
+    const memberBannerPresetField = memberPanel.querySelector("[data-profile-banner-preset]");
+    const memberFontField = memberPanel.querySelector("[data-profile-font]");
+    const memberProProfileControls = memberPanel.querySelector("[data-pro-profile-tools]");
+
+    if (memberProfileAvatar) {
+      memberProfileAvatar.innerHTML = profile.avatar_url ? `<img src="${profile.avatar_url}" alt="${escapeHtml(profile.username || "Profile picture")}" />` : `<span>${escapeHtml(initials)}</span>`;
+    }
+    if (memberUsernameField) memberUsernameField.value = profile.username || "";
+    if (memberAvatarField) memberAvatarField.value = profile.avatar_url || "";
+    if (memberBannerField) memberBannerField.value = profile.banner_url || "";
+    if (memberFontField) memberFontField.value = profile.preferred_font || "classic";
+    if (memberProfileBanner) {
+      const bannerIsPreset = typeof profile.banner_url === "string" && profile.banner_url.startsWith("linear-gradient");
+      memberProfileBanner.hidden = !profile.banner_url;
+      memberProfileBanner.style.backgroundImage = profile.banner_url ? bannerBackgroundStyle(profile.banner_url) : "";
+      if (memberBannerPresetField) {
+        const matchingPreset = proBannerPresets.find((preset) => preset.value === profile.banner_url);
+        memberBannerPresetField.value = matchingPreset ? matchingPreset.value : proBannerPresets[0].value;
+        if (bannerIsPreset) {
+          memberBannerField.value = "";
+        }
+      }
+    }
+    if (memberProProfileControls) {
+      memberProProfileControls.hidden = !hasPro;
+      if (!hasPro) {
+        memberBannerField.disabled = true;
+        memberBannerPresetField.disabled = true;
+        memberFontField.disabled = true;
+      } else {
+        memberBannerField.disabled = false;
+        memberBannerPresetField.disabled = false;
+        memberFontField.disabled = false;
+      }
+    }
+    renderFavoritePlaylist();
+  } catch (error) {
+    console.error("Could not load account details.", error);
+    message.textContent = "Could not check your account right now. Check your connection and reload.";
+  }
+}
+
+async function startGoogleSignIn(statusElement) {
+  if (!supabaseClient) {
+    if (statusElement) statusElement.textContent = "Google sign-in isn't connected. Check the Supabase settings and refresh.";
+    return;
+  }
+  if (statusElement) statusElement.textContent = "Opening Google sign-in…";
+
+  try {
+    sessionStorage.setItem(googleOAuthReturnKey, "true");
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}${window.location.pathname}` }
+    });
+    if (error) throw error;
+  } catch (error) {
+    sessionStorage.removeItem(googleOAuthReturnKey);
+    console.error("Google sign-in failed.", error);
+    if (statusElement) {
+      statusElement.textContent = error.message?.toLowerCase().includes("provider")
+        ? "Google sign-in is not enabled yet. Set up the Google provider in Supabase Authentication."
+        : "Could not start Google sign-in. Check its Supabase provider and redirect URL settings.";
+    }
+  }
+}
+
+function wireAccountControls() {
+  const signInForm = app.querySelector("[data-account-sign-in]");
+  const signUpForm = app.querySelector("[data-account-sign-up]");
+  const message = app.querySelector("[data-account-message]");
+  if (!signInForm || !signUpForm || !message) return;
+
+  app.querySelector("[data-account-show-sign-up]")?.addEventListener("click", () => {
+    signInForm.hidden = true;
+    signUpForm.hidden = false;
+    message.textContent = "";
+  });
+  app.querySelector("[data-account-show-sign-in]")?.addEventListener("click", () => {
+    signUpForm.hidden = true;
+    signInForm.hidden = false;
+    message.textContent = "";
+  });
+  app.querySelectorAll("[data-google-sign-in]").forEach((button) => {
+    button.addEventListener("click", () => startGoogleSignIn(message));
+  });
+
+  signInForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!supabaseClient) return;
+    const button = signInForm.querySelector('[type="submit"]');
+    button.disabled = true;
+    message.textContent = "Signing in…";
+    try {
+      const { error } = await supabaseClient.auth.signInWithPassword({
+        email: signInForm.elements.namedItem("email").value.trim(),
+        password: signInForm.elements.namedItem("password").value
+      });
+      if (error) throw error;
+      signInForm.reset();
+      message.textContent = "";
+      await refreshAccountPage();
+    } catch (error) {
+      console.error("Account sign-in failed.", error);
+      message.textContent = "Sign-in failed. Check the email and password, then try again.";
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  signUpForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!supabaseClient) return;
+    const button = signUpForm.querySelector('[type="submit"]');
+    button.disabled = true;
+    message.textContent = "Creating your account…";
+    const displayName = signUpForm.elements.namedItem("displayName").value.trim();
+    const email = signUpForm.elements.namedItem("email").value.trim();
+    const password = signUpForm.elements.namedItem("password").value;
+    try {
+      const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { display_name: displayName },
+          emailRedirectTo: `${window.location.origin}${window.location.pathname}#account`
+        }
+      });
+      if (error) throw error;
+      signUpForm.reset();
+      if (data.session) {
+        message.textContent = "Account created. You’re signed in.";
+        await refreshAccountPage();
+      } else {
+        signUpForm.hidden = true;
+        signInForm.hidden = false;
+        message.textContent = "Account created. Check your email to confirm it, then sign in.";
+      }
+    } catch (error) {
+      console.error("Account registration failed.", error);
+      message.textContent = error.message?.toLowerCase().includes("redirect")
+        ? "Supabase needs this website URL added to Authentication → URL Configuration → Redirect URLs."
+        : "Could not create the account. The email may already be registered, or Supabase may need account sign-up enabled.";
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  if (!app.dataset.profileFormEventsBound) {
+    app.addEventListener("submit", async (event) => {
+      if (!event.target.matches("[data-profile-form]")) return;
+      event.preventDefault();
+      await handleProfileFormSubmit(event.target);
+    });
+    app.addEventListener("change", (event) => {
+      if (!event.target.matches("[data-profile-avatar-file], [data-profile-banner-file]")) return;
+      const form = event.target.form;
+      const imageFile = event.target.files?.[0];
+      if (!form || !imageFile) return;
+
+      const isBanner = event.target.matches("[data-profile-banner-file]");
+      const previewKey = isBanner ? "bannerPreviewUrl" : "avatarPreviewUrl";
+      if (form.dataset[previewKey]) URL.revokeObjectURL(form.dataset[previewKey]);
+      const previewUrl = URL.createObjectURL(imageFile);
+      form.dataset[previewKey] = previewUrl;
+      const editor = form.closest("[data-profile-editor]");
+      const avatar = editor?.querySelector("[data-profile-avatar]");
+      const banner = editor?.querySelector("[data-profile-banner]");
+      if (isBanner && banner) {
+        banner.hidden = false;
+        banner.style.backgroundImage = `url("${previewUrl}")`;
+      } else if (!isBanner && avatar) {
+        avatar.innerHTML = `<img src="${previewUrl}" alt="Selected profile picture preview" />`;
+      }
+      const profileStatus = form.querySelector("[data-profile-message]");
+      if (profileStatus) profileStatus.textContent = `${isBanner ? "Banner" : "Avatar"} preview ready. Save your profile to upload it.`;
+    });
+    app.dataset.profileFormEventsBound = "true";
+  }
+
+  app.querySelector("[data-open-chat]")?.addEventListener("click", () => {
+    window.location.hash = "chat";
+  });
+
+  app.querySelector("[data-account-sign-out]")?.addEventListener("click", async () => {
+    const button = app.querySelector("[data-account-sign-out]");
+    button.disabled = true;
+    const { error } = await supabaseClient.auth.signOut();
+    button.disabled = false;
+    if (error) {
+      message.textContent = "Could not sign out. Please try again.";
+      return;
+    }
+    message.textContent = "You’re signed out.";
+    await refreshAccountPage();
+  });
+}
+
+async function handleProfileFormSubmit(form) {
+  const profileStatus = form.querySelector("[data-profile-message]");
+  const submitButton = form.querySelector('[type="submit"]');
+  const { data, error: sessionError } = await supabaseClient.auth.getSession();
+  const user = data.session?.user;
+  if (sessionError || !user) {
+    profileStatus.textContent = "Sign in to save a profile.";
+    return;
+  }
+
+  submitButton.disabled = true;
+  try {
+    let avatarUrl = form.elements.namedItem("avatarUrl").value.trim();
+    const avatarFile = form.querySelector("[data-profile-avatar-file]")?.files?.[0];
+    if (avatarFile) {
+      profileStatus.textContent = "Uploading your avatar…";
+      avatarUrl = await uploadProfileImage(avatarFile, user);
+    }
+
+    const { data: currentProfile } = await supabaseClient
+      .from("user_profiles")
+      .select("banner_url, preferred_font")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const hasPro = await checkActiveProMembership();
+    const bannerPresetValue = form.elements.namedItem("bannerPreset")?.value || "";
+    const bannerUrlInput = form.elements.namedItem("bannerUrl")?.value.trim() || "";
+    const bannerFile = hasPro ? form.querySelector("[data-profile-banner-file]")?.files?.[0] : null;
+    let uploadedBannerUrl = "";
+    if (bannerFile) {
+      profileStatus.textContent = "Uploading your banner…";
+      uploadedBannerUrl = await uploadProfileImage(bannerFile, user);
+    }
+    const formProfile = {
+      username: form.elements.namedItem("username").value.trim(),
+      avatar_url: avatarUrl,
+      banner_url: hasPro
+        ? (uploadedBannerUrl || bannerUrlInput || bannerPresetValue || "")
+        : (currentProfile?.banner_url || ""),
+      preferred_font: hasPro
+        ? (form.elements.namedItem("preferredFont").value || "classic")
+        : (currentProfile?.preferred_font || "classic")
+    };
+
+    profileStatus.textContent = "Saving your profile…";
+    const savedProfile = await saveCurrentProfile(user, formProfile);
+    ["avatarPreviewUrl", "bannerPreviewUrl"].forEach((previewKey) => {
+      if (form.dataset[previewKey]) URL.revokeObjectURL(form.dataset[previewKey]);
+      delete form.dataset[previewKey];
+    });
+    form.querySelector("[data-profile-avatar-file]").value = "";
+    form.querySelector("[data-profile-banner-file]").value = "";
+    applyProfileTheme(savedProfile);
+    await refreshAccountPage();
+    const refreshedStatus = app.querySelector("[data-profile-message]");
+    if (refreshedStatus) refreshedStatus.textContent = "Profile saved successfully.";
+  } catch (error) {
+    console.error("Could not save profile.", error);
+    profileStatus.textContent = error.statusCode || error.name === "StorageApiError"
+      ? "Image upload failed. Confirm the avatars bucket and user-folder storage policies are set up, then try again."
+      : `Profile could not be saved: ${error.message || "check the Supabase setup and try again."}`;
+  } finally {
+    submitButton.disabled = false;
+  }
+}
+
+function wirePageControls(route) {
+  if (route === "request") {
+    const requestForm = app.querySelector("[data-request-form]");
+    requestForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const name = requestForm.elements.namedItem("name").value.trim();
+      const item = requestForm.elements.namedItem("item").value.trim();
+      const status = app.querySelector("[data-request-status]");
+      if (!name || !item) {
+        status.textContent = "Please fill in both required fields.";
+        return;
+      }
+
+      if (!supabaseClient) {
+        status.textContent = "Requests are not connected yet. Please try again later.";
+        return;
+      }
+
+      const submitButton = requestForm.querySelector('[type="submit"]');
+      submitButton.disabled = true;
+      status.textContent = "Sending your request…";
+      try {
+        const { error } = await supabaseClient.from("video_requests").insert({ name, item });
+        if (error) {
+          console.error("Could not submit video request.", error);
+          status.textContent = error.code === "PGRST205" || error.code === "42P01"
+            ? "The requests table is missing in Supabase. Karaas needs to run supabase-setup.sql in the Supabase SQL Editor, then try again."
+            : error.code === "PGRST204" || error.code === "42703"
+              ? "The requests table is missing its name or item column. Run the updated supabase-setup.sql in the Supabase SQL Editor, then try again."
+            : error.code === "42501"
+              ? "Supabase blocked this request. Check the insert permission and row security policy in supabase-setup.sql."
+              : "Could not send your request. Please check your connection and try again.";
+          return;
+        }
+
+        requestForm.reset();
+        status.textContent = "Thanks! Your request was sent privately to the site owner.";
+      } catch (error) {
+        console.error("Could not reach Supabase to submit video request.", error);
+        status.textContent = "Could not reach the request database. Check your internet connection and try again.";
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+  }
+
+  const heroLogo = document.querySelector(".hero-art img");
+  if (heroLogo) {
+    let dragStart;
+
+    heroLogo.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      const currentX = Number.parseFloat(heroLogo.dataset.dragX || "0");
+      const currentY = Number.parseFloat(heroLogo.dataset.dragY || "0");
+      dragStart = {
+        pointerX: event.clientX,
+        pointerY: event.clientY,
+        offsetX: currentX,
+        offsetY: currentY
+      };
+      heroLogo.closest(".hero")?.classList.add("is-logo-dragging");
+      heroLogo.classList.add("is-dragging");
+      heroLogo.setPointerCapture(event.pointerId);
+    });
+
+    heroLogo.addEventListener("pointermove", (event) => {
+      if (!dragStart) return;
+      const x = dragStart.offsetX + event.clientX - dragStart.pointerX;
+      const y = dragStart.offsetY + event.clientY - dragStart.pointerY;
+      heroLogo.dataset.dragX = String(x);
+      heroLogo.dataset.dragY = String(y);
+      heroLogo.style.setProperty("--logo-drag-x", `${x}px`);
+      heroLogo.style.setProperty("--logo-drag-y", `${y}px`);
+    });
+
+    const stopLogoDrag = () => {
+      if (!dragStart) return;
+      dragStart = undefined;
+      delete heroLogo.dataset.dragX;
+      delete heroLogo.dataset.dragY;
+      heroLogo.style.setProperty("--logo-drag-x", "0px");
+      heroLogo.style.setProperty("--logo-drag-y", "0px");
+      heroLogo.classList.remove("is-dragging");
+    };
+    heroLogo.addEventListener("transitionend", (event) => {
+      if (event.propertyName === "transform" && !dragStart) {
+        heroLogo.closest(".hero")?.classList.remove("is-logo-dragging");
+      }
+    });
+    heroLogo.addEventListener("pointerup", stopLogoDrag);
+    heroLogo.addEventListener("pointercancel", stopLogoDrag);
+    heroLogo.addEventListener("lostpointercapture", stopLogoDrag);
+  }
+
+  document.querySelectorAll("[data-favorite-toggle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const kind = button.dataset.favoriteKind;
+      const id = button.dataset.favoriteId;
+      const label = button.dataset.favoriteLabel || "favorite";
+      const nextSet = getFavoriteSet();
+      const key = `${kind}:${id}`;
+
+      if (nextSet.has(key)) {
+        nextSet.delete(key);
+      } else {
+        nextSet.add(key);
+      }
+
+      setFavoriteSet(nextSet);
+      const isFavorited = nextSet.has(key);
+      button.classList.toggle("is-favorited", isFavorited);
+      button.textContent = isFavorited ? "♥" : "♡";
+      button.setAttribute("aria-label", `${isFavorited ? "Remove from favorites" : "Add to favorites"}: ${label}`);
+      button.setAttribute("title", isFavorited ? "Remove from favorites" : "Add to favorites");
+    });
+  });
+
+  document.querySelectorAll("[data-fullscreen]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const frame = button.closest(".media-frame");
+      if (!frame) return;
+      try {
+        if (document.fullscreenElement === frame) {
+          await document.exitFullscreen?.();
+          return;
+        }
+        if (document.fullscreenElement) await document.exitFullscreen?.();
+        await frame.requestFullscreen?.();
+      } catch (error) {
+        console.warn("Unable to enter game fullscreen mode.", error);
+      }
+    });
+  });
+
+  if (route === "settings") {
+    const options = document.querySelectorAll("[data-theme-option]");
+    const syncOptions = () => options.forEach((option) => {
+      const selected = option.dataset.themeOption === savedTheme();
+      option.classList.toggle("active", selected);
+      option.setAttribute("aria-pressed", selected);
+    });
+    options.forEach((option) => option.addEventListener("click", () => {
+      localStorage.setItem(themeStorageKey, option.dataset.themeOption);
+      applyTheme(option.dataset.themeOption);
+      syncOptions();
+    }));
+    syncOptions();
+  }
+}
+
+async function refreshChatPage() {
+  const stream = app.querySelector("[data-chat-stream]");
+  const status = app.querySelector("[data-chat-status]");
+  const form = app.querySelector("[data-chat-form]");
+  if (!stream || !form) return;
+
+  if (!supabaseClient) {
+    stream.innerHTML = '<div class="feature-empty"><p>Chat is not connected yet. Add the Supabase project URL and anon key to get this working.</p></div>';
+    form.hidden = true;
+    return;
+  }
+
+  const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+  const user = sessionData?.session?.user;
+  if (sessionError || !user) {
+    stream.innerHTML = '<div class="feature-empty"><p>Sign in to join the lounge chat.</p></div>';
+    form.hidden = true;
+    if (status) status.textContent = "Sign in to join the chat.";
+    return;
+  }
+
+  form.hidden = false;
+  try {
+    const { data: profilesData, error: profilesError } = await supabaseClient
+      .from("user_profiles")
+      .select("user_id, username, avatar_url, banner_url, preferred_font, role");
+    if (profilesError) throw profilesError;
+
+    const profileMap = new Map((profilesData || []).map((entry) => [entry.user_id, entry]));
+    const { data: messages, error: messagesError } = await supabaseClient
+      .from("chat_messages")
+      .select("id, user_id, message, created_at")
+      .order("created_at", { ascending: true })
+      .limit(80);
+    if (messagesError) throw messagesError;
+
+    if (!messages?.length) {
+      stream.innerHTML = '<div class="feature-empty"><p>No messages yet. Start the conversation.</p></div>';
+      return;
+    }
+
+    stream.innerHTML = messages.map((message) => {
+      const profile = profileMap.get(message.user_id) || { username: "Lounge member", avatar_url: "", role: "" };
+      const roleValue = profile.role || (message.user_id === user.id ? getAccountRole(user.email).toLowerCase() : "");
+      const avatar = profile.avatar_url
+        ? `<img src="${profile.avatar_url}" alt="${escapeHtml(profile.username || "Profile picture")}" />`
+        : `<span>${escapeHtml(getInitialsName(profile.username || "Lounge member"))}</span>`;
+      const timestamp = new Date(message.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      const roleLabel = roleValue ? `${roleValue.charAt(0).toUpperCase()}${roleValue.slice(1).toLowerCase()}` : "";
+      const role = roleLabel ? `<span class="role-tag role-tag-${escapeHtml(roleLabel.toLowerCase())}">${escapeHtml(roleLabel)}</span>` : "";
+      return `<article class="chat-message"><div class="chat-avatar">${avatar}</div><div><div class="chat-meta"><strong>${escapeHtml(profile.username || "Lounge member")}</strong>${role}<time>${escapeHtml(timestamp)}</time></div><p>${escapeHtml(message.message)}</p></div></article>`;
+    }).join("");
+  } catch (error) {
+    console.error("Could not load chat messages.", error);
+    stream.innerHTML = '<div class="feature-empty"><p>Chat is connected but the messages table is not ready yet. Run the SQL setup again.</p></div>';
+    if (status) status.textContent = "Chat could not load.";
+  }
+}
+
+function wireChatControls() {
+  const form = app.querySelector("[data-chat-form]");
+  if (!form) return;
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const status = app.querySelector("[data-chat-status]");
+    const messageInput = form.elements.namedItem("message");
+    const messageText = messageInput.value.trim();
+    if (!supabaseClient || !messageText) {
+      if (status) status.textContent = "Type a message before sending.";
+      return;
+    }
+
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    const user = sessionData?.session?.user;
+    if (!user) {
+      if (status) status.textContent = "Sign in to send a message.";
+      return;
+    }
+
+    if (status) status.textContent = "Sending…";
+    const { error } = await supabaseClient.from("chat_messages").insert({ user_id: user.id, message: messageText });
+    if (error) {
+      console.error("Could not send chat message.", error);
+      if (status) status.textContent = "The chat table is not ready yet. Run the updated SQL setup.";
+      return;
+    }
+
+    form.reset();
+    if (status) status.textContent = "Message sent.";
+    await refreshChatPage();
+  });
+}
+
+async function render() {
+  const route = window.location.hash.slice(1) || "home";
+  const { data: sessionData } = supabaseClient
+    ? await supabaseClient.auth.getSession()
+    : { data: { session: null } };
+  const currentUser = sessionData?.session?.user || null;
+  setInboxNavigation(currentUser);
+  if (route === "requests" && !isDeveloper(currentUser)) {
+    window.location.hash = currentUser ? "home" : "account";
+    return;
+  }
+  if (route === "manage-media" && !isStaff(currentUser)) {
+    window.location.hash = currentUser ? "home" : "account";
+    return;
+  }
+  const person = people.find((entry) => entry.slug === route);
+  const pageMedia = person ? await loadPublishedPageMedia(person.slug) : [];
+  const pageRoute = route;
+  app.innerHTML = pageRoute === "home" ? homePage() : pageRoute === "people" ? peopleDirectoryPage() : pageRoute === "request" ? requestsPage() : pageRoute === "requests" ? privateRequestsPage() : pageRoute === "manage-media" ? mediaManagerPage() : pageRoute === "account" ? accountPage() : pageRoute === "settings" ? settingsPage() : pageRoute === "chat" ? chatPage() : pageRoute === "hany" ? hanyPage() : person ? personPage(person, pageMedia) : homePage();
+  if (pageRoute === "home") {
+    mountDailyPoll();
+    const hasPro = await checkActiveProMembership();
+    if (hasPro) {
+      const rewardPanel = app.querySelector(".reward-panel");
+      if (rewardPanel) rewardPanel.remove();
+    }
+  }
+  if (pageRoute === "settings") mountCustomizations();
+  document.querySelectorAll("[data-nav]").forEach((link) => link.classList.toggle("active", link.dataset.nav === route));
+  const pointsDisplay = document.querySelector("[data-points-total]");
+  if (pointsDisplay) pointsDisplay.textContent = String(loadPoints());
+  updateRewardButtonState();
+  wirePageControls(pageRoute);
+  if (pageRoute === "requests") refreshPrivateRequests();
+  if (pageRoute === "manage-media") {
+    wireMediaManagerControls();
+    refreshMediaManager();
+  }
+  if (pageRoute === "account") {
+    wireAccountControls();
+    refreshAccountPage();
+  }
+  if (pageRoute === "chat") {
+    wireChatControls();
+    refreshChatPage();
+  }
+  attachRewardListeners();
+  attachEconomyListeners();
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function showRecentUpdates() {
+  const modal = document.querySelector("[data-updates-modal]");
+  const dialog = modal?.querySelector('[role="dialog"]');
+  if (!modal || !dialog) return;
+
+  const accountPrompt = modal.querySelector("[data-account-prompt]");
+  if (accountPrompt) {
+    try {
+      const { data } = supabaseClient ? await supabaseClient.auth.getSession() : { data: { session: null } };
+      accountPrompt.hidden = Boolean(data.session);
+    } catch (error) {
+      console.warn("Unable to check sign-in status for the welcome prompt.", error);
+      accountPrompt.hidden = false;
+    }
+  }
+
+  const closeButtons = modal.querySelectorAll("[data-close-updates]");
+  const previousOverflow = document.body.style.overflow;
+  const previousFocus = document.activeElement;
+  const closeModal = () => {
+    modal.hidden = true;
+    document.body.style.overflow = previousOverflow;
+    document.removeEventListener("keydown", handleModalKeydown);
+    if (previousFocus instanceof HTMLElement && document.body.contains(previousFocus)) previousFocus.focus();
+  };
+  const handleModalKeydown = (event) => {
+    if (event.key === "Escape") {
+      closeModal();
+      return;
+    }
+    if (event.key !== "Tab") return;
+
+    const focusable = [...dialog.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])')];
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  closeButtons.forEach((button) => button.addEventListener("click", closeModal));
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) closeModal();
+  });
+  document.body.style.overflow = "hidden";
+  modal.hidden = false;
+  document.addEventListener("keydown", handleModalKeydown);
+  closeButtons[0]?.focus();
+
+  accountPrompt?.querySelector("[data-prompt-sign-up]")?.addEventListener("click", () => {
+    closeModal();
+    window.location.hash = "account";
+    window.setTimeout(() => app.querySelector("[data-account-show-sign-up]")?.click(), 0);
+  });
+  accountPrompt?.querySelector("[data-prompt-sign-in]")?.addEventListener("click", () => {
+    closeModal();
+    window.location.hash = "account";
+  });
+  accountPrompt?.querySelector("[data-google-sign-in]")?.addEventListener("click", () => {
+    startGoogleSignIn(accountPrompt.querySelector("[data-google-status]"));
+  });
+}
+
+window.addEventListener("hashchange", render);
+render();
+showRecentUpdates();

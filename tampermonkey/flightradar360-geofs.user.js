@@ -462,7 +462,7 @@
       const latitude = Number(coordinates[0]);
       const longitude = Number(coordinates[1]);
       if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
-          !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+        !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
         setSaveStatus("Waiting for a valid GeoFS aircraft position…", "info");
         return;
       }
