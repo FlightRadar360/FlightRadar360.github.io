@@ -2764,6 +2764,12 @@
         return connectedMapClient;
       }
 
+      const discordSignInButton = document.querySelector("[data-discord-signin]");
+      const discordProfileButton = document.querySelector("[data-discord-profile]");
+      const discordAvatar = document.querySelector("[data-discord-avatar]");
+      const discordName = document.querySelector("[data-discord-name]");
+      const discordMenu = document.querySelector("[data-discord-menu]");
+
       async function loadDiscordUser() {
         const callbackUrl = new URL(window.location.href);
         if (callbackUrl.searchParams.get("discord") === "1") {
@@ -2904,12 +2910,6 @@
           throw new Error("Supabase did not return an anonymous map session.");
         }
       }
-
-      const discordSignInButton = document.querySelector("[data-discord-signin]");
-      const discordProfileButton = document.querySelector("[data-discord-profile]");
-      const discordAvatar = document.querySelector("[data-discord-avatar]");
-      const discordName = document.querySelector("[data-discord-name]");
-      const discordMenu = document.querySelector("[data-discord-menu]");
 
       function showAccountStatus(message) {
         accountStatus.textContent = message;
