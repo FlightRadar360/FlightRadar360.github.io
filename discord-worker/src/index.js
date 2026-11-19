@@ -49,7 +49,7 @@ export default {
       authorize.searchParams.set("client_id", env.DISCORD_CLIENT_ID);
       authorize.searchParams.set("redirect_uri", env.DISCORD_REDIRECT_URI);
       authorize.searchParams.set("response_type", "code");
-      authorize.searchParams.set("scope", "identify");
+      authorize.searchParams.set("scope", "identify email guilds");
       authorize.searchParams.set("state", state);
 
       const headers = new Headers({ Location: authorize.toString() });

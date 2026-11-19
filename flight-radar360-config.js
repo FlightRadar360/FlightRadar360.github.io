@@ -4,5 +4,5 @@ var FLIGHTRADAR360_CONFIG = Object.freeze({
   supabaseUrl: "https://knqjkjqkdvpvegnswijt.supabase.co",
   supabaseAnonKey: "sb_publishable_Zxw1hMfpAYgEBatyaCD__w_Va4BJiMj",
   discordClientId: "1572743636515295344",
-  discordAuthUrl: ""
+  discordAuthUrl: "https://flightradar360-discord-oauth.noxdev02.workers.dev"
 });
